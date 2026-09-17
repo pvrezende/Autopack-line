@@ -70,6 +70,55 @@ export type ScanSimulationResult = {
   production_order_id: number | null
 }
 
+export type RetestAttempt = {
+  id: number
+  production_unit_id: number
+  scan_event_id: number | null
+  attempt_number: number
+  decision: 'REJECTED' | 'APPROVED'
+  source: 'SIMULATOR' | 'MES' | 'PLC' | 'OPERATOR'
+  authorization_status: string
+  reason_code: string | null
+  reason_text: string | null
+  idempotency_key: string
+  counted_in_production: boolean
+  details: Record<string, unknown> | null
+  created_by_username: string | null
+  created_at: string
+}
+
+export type RetestDiagnosticStatus = {
+  stage: string
+  real_retest_enabled: boolean
+  simulator_enabled: boolean
+  physical_plc_required: boolean
+  mode: string
+  safety_rules: string[]
+  pending_definitions: string[]
+  message: string
+}
+
+export type RetestSimulationResponse = {
+  attempt: RetestAttempt
+  replayed: boolean
+  production_state_changed: boolean
+  message: string
+}
+
+export type RetestUnit = {
+  id: number
+  serial_number: string
+  unit_status: string
+  product_id: number
+  product_model: string
+  product_name: string
+  production_order_id: number
+  production_order: string
+  attempt_count: number
+  last_decision: 'REJECTED' | 'APPROVED' | null
+  created_at: string
+}
+
 
 export type ReaderIntegrationStatus = {
   mode: 'SIMULATOR' | 'PHYSICAL'

@@ -42,6 +42,6 @@ def test_dashboard_operational_aggregates_real_data():
         assert result["summary"]["invalid_scans"] == 1
         assert result["summary"]["palletized_units"] == 2
         assert result["summary"]["open_pallets"] == 1
-        assert result["production_by_hour"] == [{"hour": "12:00", "quantity": 2}]
+        assert result["production_by_hour"] == [{"hour": "12:00", "quantity": 2, "cumulative_quantity": 2}]
         assert result["open_pallets"][0]["progress_percent"] == 66.7
         assert result["recent_occurrences"][0]["status"] == "INVALID"

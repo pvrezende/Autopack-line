@@ -10,6 +10,7 @@ import { StatusCards } from './components/StatusCards'
 import { TraceabilityPanel, type TraceabilityPreset } from './components/TraceabilityPanel'
 import { UserManagementPanel } from './components/UserManagementPanel'
 import { WorkSchedulePanel } from './components/WorkSchedulePanel'
+import { RetestFoundationPanel } from './components/RetestFoundationPanel'
 import {
   clearStoredToken,
   getDbHealth,
@@ -171,7 +172,7 @@ export function App() {
       {tab === 'schedule' && canTrace && <WorkSchedulePanel lines={lines} user={user} />}
       {tab === 'configuration' && isAdmin && <ConfigurationPanel products={products} lines={lines} configs={configs} targets={targets} onChanged={refresh} />}
       {tab === 'traceability' && canTrace && <TraceabilityPanel products={products} lines={lines} refreshKey={traceRefreshKey} preset={tracePreset} presetKey={tracePresetKey} />}
-      {tab === 'diagnostics' && canTrace && <OperationPanel lines={lines} onChanged={refresh} refreshKey={operationRefreshKey} view="diagnostics" />}
+      {tab === 'diagnostics' && canTrace && <><RetestFoundationPanel /><OperationPanel lines={lines} onChanged={refresh} refreshKey={operationRefreshKey} view="diagnostics" /></>}
       {tab === 'users' && isAdmin && <UserManagementPanel currentUser={user} />}
     </main>
     {passwordOpen && <PasswordModal onClose={() => setPasswordOpen(false)} />}

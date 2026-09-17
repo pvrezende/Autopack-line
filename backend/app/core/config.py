@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     plc_modbus_host: str = "192.168.0.2"
     plc_modbus_port: int = 502
     plc_modbus_unit_id: int = 1
+    retest_enabled: bool = False
+    retest_simulator_enabled: bool = True
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

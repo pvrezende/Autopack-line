@@ -2,6 +2,20 @@
 
 Núcleo funcional do software de rastreabilidade e paletização automatizada.
 
+## Atualização mais recente — ETAPA 7.32
+
+Consolidação profissional do reteste offline, sem ativar MES, CLP físico ou qualquer alteração na produção:
+
+- busca de unidades por serial, OP ou modelo diretamente pela interface;
+- exibição do produto, ordem de produção e estado preservado antes da simulação;
+- histórico de tentativas traduzido e auditável;
+- confirmação explícita antes de reprovar ou aprovar;
+- bloqueio visual e no backend de aprovação sem reprovação anterior;
+- proteção contra reutilização indevida de chave de idempotência;
+- registros de auditoria para buscas, consultas e simulações;
+- accordion identificado por `+`/`−`, com layout responsivo;
+- operação real, produção, paletes, MES e socket físico permanecem bloqueados.
+
 ## Stack
 
 - Frontend: React + TypeScript + Vite
@@ -362,3 +376,6 @@ ficam em Manutenção e Diagnóstico, disponível a Supervisor e Administrador. 
 perfis e regras industriais existentes foram preservados, assim como o bloqueio
 do adaptador físico. Consulte
 `docs/ETAPA_7_30_REORGANIZACAO_OPERACAO_DIAGNOSTICO.md`.
+# Histórico — ETAPA 7.31
+
+A versão atual inclui a fundação controlada de reteste offline: histórico de várias tentativas por unidade, idempotência, auditoria, simulador e painel técnico recolhível. O reteste real permanece desabilitado (`RETEST_ENABLED=false`) até a definição das regras de processo. Consulte `docs/ETAPA_7_31_FUNDACAO_RETESTE_OFFLINE.md`.

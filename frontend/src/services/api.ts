@@ -23,6 +23,7 @@ import type { DashboardLossAnalysis, DashboardOEEHistory,
   WorkScheduleSummary,
   ReaderDiagnosticResponse, ReaderIntegrationStatus, PlcConfirmResponse, PlcCycleStatus, PlcIntegrationStatus, PlcModbusContract, PlcModbusCodecDiagnostic, PlcModbusHandshakeDiagnostic, PlcModbusSupervisionDiagnostic, PlcModbusReconciliationDiagnostic, PlcModbusSimulatorDiagnostic, PlcModbusPhysicalDiagnostic, PlcAutomaticProductionDiagnostic, PlcAutomaticOfflineCycleDiagnostic, PlcAutomaticOfflineCycleResponse, PlcResilienceValidationDiagnostic, PlcIndustrialDiagnostics, PlcOperationalHealthDiagnostic, PlcCommissioningReadinessDiagnostic, PlcCommissioningPlanDiagnostic, PlcCommissioningEvidenceDiagnostic, PlcCommissioningRehearsalDiagnostic,
   ReaderIngestResponse,
+  RetestAttempt, RetestDiagnosticStatus, RetestSimulationResponse, RetestUnit,
 } from '../types/domain'
 
 const API_URL = import.meta.env.VITE_API_URL || (
@@ -125,6 +126,29 @@ export function generateTestQr(production_order_id: number) {
 
 export function simulateScan(payload: { line_id: number; raw_code: string }) {
   return request<ScanSimulationResult>('/scans/simulate', { method: 'POST', body: JSON.stringify(payload) })
+}
+
+export function getRetestStatus() {
+  return request<RetestDiagnosticStatus>('/retests/status')
+}
+
+export function listRetestHistory(serial_number: string) {
+  return request<RetestAttempt[]>(`/retests?${queryString({ serial_number })}`)
+}
+
+export function searchRetestUnits(query = '', limit = 20) {
+  return request<RetestUnit[]>(`/retests/units?${queryString({ query, limit })}`)
+}
+
+export function simulateRetest(payload: {
+  serial_number: string
+  decision: 'REJECTED' | 'APPROVED'
+  authorized_for_retest: boolean
+  reason_code?: string
+  reason_text?: string
+  idempotency_key: string
+}) {
+  return request<RetestSimulationResponse>('/retests/simulate', { method: 'POST', body: JSON.stringify(payload) })
 }
 
 export function getReaderIntegrationStatus() {
