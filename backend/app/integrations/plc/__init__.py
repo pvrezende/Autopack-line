@@ -28,3 +28,5 @@ from .commissioning_plan import get_commissioning_plan
 from .commissioning_evidence import get_commissioning_evidence_package
 
 from .commissioning_rehearsal import get_commissioning_rehearsal
+
+from .rev02_contract import get_rev02_diagnostic, decode_features, decode_reader_block

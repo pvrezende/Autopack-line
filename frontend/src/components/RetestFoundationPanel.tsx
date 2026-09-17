@@ -113,6 +113,7 @@ export function RetestFoundationPanel() {
           <button className="danger" disabled={busy || !selectedUnit} onClick={() => run('REJECTED')}>Simular reprovação</button>
           <button className="primary" disabled={busy || !selectedUnit || !hasRejected} onClick={() => run('APPROVED')}>Simular reteste aprovado</button>
         </div>
+        {selectedUnit && !hasRejected && <div className="message warning">A aprovação permanece bloqueada até existir uma reprovação anterior para esta unidade.</div>}
         {error && <div className="message error">{error}</div>}{message && <div className="message success">{message}</div>}
         <div className="retest-history">
           {history.length === 0 ? <small>Nenhuma tentativa registrada para a unidade selecionada.</small> : history.map(item => <div key={item.id}>

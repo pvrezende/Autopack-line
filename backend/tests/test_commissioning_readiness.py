@@ -17,7 +17,7 @@ def test_commissioning_readiness_keeps_real_clp_blocked_and_offline_work_allowed
     assert result["offline_development_allowed"] is True
     assert result["real_commissioning_allowed"] is False
     assert result["checklist_count"] == 7
-    assert result["real_blocker_count"] >= 3
-    assert result["pending_automation_count"] >= 1
+    assert result["real_blocker_count"] >= 2
+    assert result["pending_automation_count"] == 1
     assert result["pending_commissioning_count"] >= 1
-    assert any(item["code"] == "LADDER_D700_D763" for item in result["checklist"])
+    assert any(item["code"] == "LADDER_REV04_ISPSOFT" for item in result["checklist"])

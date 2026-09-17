@@ -17,9 +17,14 @@ class Settings(BaseSettings):
     plc_retry_max_attempts: int = 3
     plc_retry_interval_seconds: int = 1
     plc_physical_enabled: bool = False
-    plc_modbus_host: str = "192.168.0.2"
+    plc_modbus_host: str = "192.168.29.5"
     plc_modbus_port: int = 502
     plc_modbus_unit_id: int = 1
+    plc_pc_ip: str = "192.168.29.10"
+    plc_netmask: str = "255.255.255.0"
+    plc_modbus_address_base: int = 0
+    plc_ascii_byte_order: str = "HIGH_LOW"
+    plc_read_only_enabled: bool = False
     retest_enabled: bool = False
     retest_simulator_enabled: bool = True
 

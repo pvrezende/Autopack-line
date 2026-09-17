@@ -198,7 +198,7 @@ def get_codec_diagnostic() -> dict:
         pc_heartbeat=25,
         request_sequence=1234,
         command=1,
-        recipe_id=0,  # relação real de receitas permanece pendente
+        recipe_id=1,
         serial="AB12",
         ean="7908412552656",
         production_order="000001275033",
@@ -235,10 +235,10 @@ def get_codec_diagnostic() -> dict:
         "sample_read_decode": decode_read_registers(simulated_read),
         "write_order": ["D704-D749", "D700-D703"],
         "safety_notes": [
-            "O codec usa endereços lógicos D700-D763 e não presume o offset Modbus físico.",
+            "O codec do handshake usa D700-D763; a extensão Rev.02 cobre D764-D779 e D800-D879 sem presumir o offset físico.",
             "Byte order ASCII não é fixado antes do teste AB12 no comissionamento.",
             "Textos fora de ASCII são rejeitados; não há transliteração silenciosa.",
-            "D754 e D756 permanecem numéricos até as tabelas aprovadas pela automação serem recebidas.",
+            "D754, D756 e receitas seguem as tabelas oficiais do adendo Rev.02.",
         ],
         "message": "Codec UINT16/WORD/ASCII preparado offline. Byte order e offset físico continuam pendentes somente para o comissionamento.",
     }

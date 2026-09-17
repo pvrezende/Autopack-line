@@ -63,7 +63,7 @@ def ingest_reader(
 
 
 # ETAPA 7.4 — contrato de integração CLP/robô (simulado até definição do hardware real)
-from app.integrations.plc import PlcConfirmation, PlcGateway, plc_cycle_state, get_modbus_contract, get_codec_diagnostic, get_handshake_diagnostic, get_supervision_diagnostic, get_reconciliation_diagnostic, get_simulator_diagnostic, get_physical_adapter_diagnostic, get_automatic_production_diagnostic, get_automatic_cycle_diagnostic, run_automatic_offline_cycle, get_resilience_validation_diagnostic, get_industrial_diagnostics, get_operational_health, get_commissioning_readiness, get_commissioning_plan, get_commissioning_evidence_package, get_commissioning_rehearsal
+from app.integrations.plc import PlcConfirmation, PlcGateway, plc_cycle_state, get_modbus_contract, get_codec_diagnostic, get_handshake_diagnostic, get_supervision_diagnostic, get_reconciliation_diagnostic, get_simulator_diagnostic, get_physical_adapter_diagnostic, get_automatic_production_diagnostic, get_automatic_cycle_diagnostic, run_automatic_offline_cycle, get_resilience_validation_diagnostic, get_industrial_diagnostics, get_operational_health, get_commissioning_readiness, get_commissioning_plan, get_commissioning_evidence_package, get_commissioning_rehearsal, get_rev02_diagnostic
 from app.schemas.integration_reader import PlcConfirmRequest, PlcConfirmResponse, PlcIntegrationStatus, PlcCycleStatusResponse, PlcSimulatorControlRequest, PlcAutomaticOfflineCycleRequest, PlcAutomaticOfflineCycleResponse
 
 plc_gateway = PlcGateway()
@@ -78,6 +78,11 @@ def plc_status(_: User = Depends(get_current_user)):
 @router.get("/plc/modbus-contract")
 def plc_modbus_contract(_: User = Depends(get_current_user)):
     return get_modbus_contract()
+
+
+@router.get("/plc/rev02")
+def plc_rev02(_: User = Depends(get_current_user)):
+    return get_rev02_diagnostic()
 
 
 @router.get("/plc/modbus-codec")
@@ -335,4 +340,3 @@ def confirm_plc(
         "retry_exhausted": outcome.retry_exhausted,
         "last_retry_error": outcome.last_retry_error,
     }
-

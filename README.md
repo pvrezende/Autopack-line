@@ -2,7 +2,11 @@
 
 Núcleo funcional do software de rastreabilidade e paletização automatizada.
 
-## Atualização mais recente — ETAPA 7.32
+## Atualização mais recente — ETAPA 7.33
+
+Contrato Modbus Rev.02 preparado com os mapas D700–D779 e D800–D879, Ladder Rev.04, rede configurável, parser do leitor, feature flags, estados, receitas e painel de comissionamento seguro. Conexão física permanece bloqueada por padrão.
+
+## ETAPA 7.32
 
 Consolidação profissional do reteste offline, sem ativar MES, CLP físico ou qualquer alteração na produção:
 
@@ -379,3 +383,7 @@ do adaptador físico. Consulte
 # Histórico — ETAPA 7.31
 
 A versão atual inclui a fundação controlada de reteste offline: histórico de várias tentativas por unidade, idempotência, auditoria, simulador e painel técnico recolhível. O reteste real permanece desabilitado (`RETEST_ENABLED=false`) até a definição das regras de processo. Consulte `docs/ETAPA_7_31_FUNDACAO_RETESTE_OFFLINE.md`.
+
+## ETAPA 7.33.1 — Correção de consistência Rev.02
+
+Os diagnósticos legados foram alinhados ao contrato vigente: rede `192.168.29.0/24`, Ladder Rev.04, mapa `D700–D779` e bloco do leitor `D800–D879`. Foram removidas da interface as indicações obsoletas de “proposta/Ladder pendente”, sem liberar socket ou escrita física. Permanecem como gates reais a compilação no ISPSoft, offset, byte order AB12, porta/rede da máquina e validação EtherNet/IP do SR-1000. Consulte `docs/ETAPA_7_33_1_CORRECAO_CONSISTENCIA_REV02.md`.

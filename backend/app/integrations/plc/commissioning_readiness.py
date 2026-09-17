@@ -67,11 +67,11 @@ def get_commissioning_readiness(db: Session) -> dict[str, Any]:
             bool(physical.get("physical_socket_opened")),
         ),
         _item(
-            "LADDER_D700_D763",
-            "Ladder D700-D763",
+            "LADDER_REV04_ISPSOFT",
+            "Ladder Rev.04 no ISPSoft",
             "AUTOMATION",
             "PENDING_AUTOMATION",
-            "A automação deve confirmar a implementação do contrato D700-D763 no ladder.",
+            "Abrir, compilar e comparar a Rev.04 no ISPSoft antes do download e do teste físico.",
             True,
         ),
         _item(

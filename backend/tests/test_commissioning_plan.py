@@ -13,7 +13,7 @@ def test_commissioning_plan_is_offline_and_ordered(monkeypatch):
     )
     monkeypatch.setattr(
         "app.integrations.plc.commissioning_plan.get_modbus_contract",
-        lambda: {"connection": {"plc_ip": "192.168.0.2"}},
+        lambda: {"network_proposal": {"plc_ip": "192.168.29.5"}},
     )
     monkeypatch.setattr(
         "app.integrations.plc.commissioning_plan.get_physical_adapter_diagnostic",
@@ -31,7 +31,7 @@ def test_commissioning_plan_is_offline_and_ordered(monkeypatch):
     assert result["steps"][2]["status"] == "WAIT_AUTOMATION"
     assert result["steps"][3]["status"] == "WAIT_FACTORY"
     assert "AB12" in result["steps"][4]["detail"]
-    assert "D750-D763" in result["steps"][5]["title"]
+    assert "D750-D779" in result["steps"][5]["title"]
 
 
 def test_plan_never_claims_real_release_with_socket_open(monkeypatch):
@@ -46,7 +46,7 @@ def test_plan_never_claims_real_release_with_socket_open(monkeypatch):
     )
     monkeypatch.setattr(
         "app.integrations.plc.commissioning_plan.get_modbus_contract",
-        lambda: {"connection": {"plc_ip": "192.168.0.2"}},
+        lambda: {"network_proposal": {"plc_ip": "192.168.29.5"}},
     )
     monkeypatch.setattr(
         "app.integrations.plc.commissioning_plan.get_physical_adapter_diagnostic",

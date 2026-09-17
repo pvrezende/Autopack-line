@@ -161,6 +161,23 @@ export type PlcModbusRegister = {
   status: 'DEFINED' | 'PENDING_AUTOMATION' | 'COMMISSIONING_ONLY'
 }
 
+export type PlcRev02Diagnostic = {
+  stage: string
+  reference: string
+  status: string
+  ladder: { file:string; revision:number; year:number; mmdd:number; compiled_in_ispsoft:boolean; validated_on_plc:boolean }
+  connection: { host:string; port:number; unit_id:number; pc_ip:string; netmask:string; address_base:number; ascii_byte_order:string; physical_enabled:boolean; read_only_enabled:boolean; socket_opened:boolean }
+  ranges: { pc_to_plc:string; plc_status:string; reader:string }
+  identity_probe: Record<string, number>
+  machine_states: Array<{ code:number; label:string }>
+  recipes: Array<{ id:number; name:string; released:boolean }>
+  reader: { architecture:string; state_codes:Record<string,string>; result_codes:Record<string,string>; feature_flags_initial_value:number; features:Record<string,boolean>; block_start:number; block_length:number; audit_source:string; sample_decode:Record<string,unknown> }
+  retest: { authorized_flag:string; original_sequence:string; history_authority:string; deposited_unit_requires_rework:boolean }
+  ab12: { text:string; words:string[]; confirmed_order:string }
+  safety_gates: string[]
+  message: string
+}
+
 export type PlcModbusContract = {
   stage: string
   status: 'PROPOSAL_NOT_IMPLEMENTED_IN_LADDER'

@@ -165,7 +165,7 @@ def evaluate_supervision(snapshot: SupervisionSnapshot) -> SupervisionDecision:
             False,
             1,
             False,
-            "PRIORIZAR_NOVA_LEITURA_D750_D763",
+            "PRIORIZAR_NOVA_LEITURA_D750_D779",
             "Polling está atrasado; bloquear nova unidade até recuperar cadência estável.",
         )
 
@@ -212,7 +212,7 @@ def get_supervision_diagnostic() -> dict:
         "physical_connection_required": False,
         "automatic_operation_target": True,
         "polling": {
-            "range": "D750-D763",
+            "range": "D750-D779",
             "interval_ms": timing["poll_interval_ms"],
             "continuous": True,
         },

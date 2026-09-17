@@ -54,7 +54,7 @@ class PhysicalModbusAdapter:
         gates_closed = bool(pending_automation or pending_commissioning)
         activation_allowed = enabled_by_config and not gates_closed
         return {
-            "stage": "7.20",
+            "stage": "7.33.1",
             "status": "PHYSICAL_ADAPTER_CONFIGURED_DISABLED",
             "adapter": self.adapter,
             "transport": "MODBUS_TCP",
@@ -72,15 +72,14 @@ class PhysicalModbusAdapter:
             "pending_automation": pending_automation,
             "pending_commissioning": pending_commissioning,
             "activation_gates": [
-                "Ladder D700-D763 implementado e revisão confirmada",
-                "Tabela D754 aprovada",
-                "Tabela D756 aprovada",
-                "IDs D704/D763 aprovados",
+                "Ladder Rev.04 compilado no ISPSoft e comparado com o CLP",
                 "Offset/endereço Modbus validado no CLP real",
                 "Byte order ASCII AB12 validado no CLP real",
+                "Porta física do switch e rede 192.168.29.0/24 validadas",
+                "Integração EtherNet/IP do SR-1000 validada quando D777 anunciar dados válidos",
                 "PLC_PHYSICAL_ENABLED=true somente durante comissionamento autorizado",
             ],
-            "message": "Adaptador Modbus TCP real configurado e isolado por feature flag. Nesta etapa nenhum socket é aberto e nenhuma tentativa é feita contra 192.168.0.2.",
+            "message": f"Adaptador Modbus TCP real configurado para {settings.plc_modbus_host}:502 e isolado por feature flag. Nesta etapa nenhum socket é aberto.",
         }
 
 

@@ -190,6 +190,10 @@ export function getPlcModbusContract() {
   return request<PlcModbusContract>('/integrations/plc/modbus-contract')
 }
 
+export function getPlcRev02() {
+  return request<import('../types/domain').PlcRev02Diagnostic>('/integrations/plc/rev02')
+}
+
 export function getPlcModbusCodec() {
   return request<PlcModbusCodecDiagnostic>('/integrations/plc/modbus-codec')
 }
