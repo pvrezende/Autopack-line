@@ -1,4 +1,5 @@
 from app.integrations.plc.modbus_physical import PhysicalModbusAdapter, get_physical_adapter_diagnostic
+from app.integrations.plc.rev02_contract import sample_reader_registers
 
 
 def test_physical_adapter_is_safe_and_offline_by_default():
@@ -38,14 +39,18 @@ def test_physical_read_only_probe_uses_direct_delta_addresses_after_minimum_gate
         def __init__(self): self.calls = []
         def read_holding_registers(self, address, count):
             self.calls.append((address, count))
+            if address == 800:
+                block = sample_reader_registers()
+                return [block[x] for x in range(800, 889)]
             values = [0] * 30
             values[0], values[4], values[5] = 1, 50, 1
-            values[14], values[15], values[16] = 4, 2026, 917
-            values[27], values[28], values[29] = 3, 800, 80
+            values[14], values[15], values[16] = 6, 2026, 918
+            values[20] = 42
+            values[27], values[28], values[29] = 15, 800, 89
             return values
 
     client = FakeClient()
     result = PhysicalModbusAdapter().probe_read_only(client)
     assert result["connected"] is True
-    assert result["probe"] == "READ_D750_D779_OK"
-    assert client.calls == [(750, 30)]
+    assert result["probe"] == "READ_REV03_SNAPSHOT_OK"
+    assert client.calls == [(750, 30), (800, 89), (750, 30)]

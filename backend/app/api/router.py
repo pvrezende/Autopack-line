@@ -11,6 +11,7 @@ from app.api.routes.users import router as users_router
 from app.api.routes.work_schedules import router as work_schedules_router
 from app.api.routes.integrations import router as integrations_router
 from app.api.routes.retests import router as retests_router
+from app.api.routes.mes_quality import router as mes_quality_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
@@ -26,3 +27,4 @@ api_router.include_router(work_schedules_router)
 
 api_router.include_router(integrations_router)
 api_router.include_router(retests_router)
+api_router.include_router(mes_quality_router)

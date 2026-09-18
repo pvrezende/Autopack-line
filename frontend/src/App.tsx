@@ -12,6 +12,7 @@ import { UserManagementPanel } from './components/UserManagementPanel'
 import { WorkSchedulePanel } from './components/WorkSchedulePanel'
 import { RetestFoundationPanel } from './components/RetestFoundationPanel'
 import { Rev02CommissioningPanel } from './components/Rev02CommissioningPanel'
+import { MesQualityAlertsPanel } from './components/MesQualityAlertsPanel'
 import {
   clearStoredToken,
   getDbHealth,
@@ -166,7 +167,7 @@ export function App() {
       <header className="topbar"><div><p className="eyebrow">RASTREABILIDADE INDUSTRIAL</p><h1>AUTOPACKLINE</h1></div><div className="topbar-actions"><div className="current-user"><strong>{user.full_name}</strong><span>{user.role}</span></div><button className="secondary small" onClick={refresh}>Atualizar dados</button><button className="secondary small" onClick={logout}>Sair</button><button className="stage-help" aria-label="Ajuda rápida" title="Ajuda rápida"><span>?</span><div className="stage-tooltip"><strong>AJUDA RÁPIDA</strong><small>Acompanhe a produção no Dashboard e realize as leituras na Operação. Informações técnicas ficam separadas em Manutenção e Diagnóstico.</small></div></button></div></header>
       {tab === 'diagnostics' && <StatusCards backendStatus={backendStatus} dbStatus={dbStatus} />}
       {loadError && <div className="message error">{loadError}</div>}
-      {tab === 'dashboard' && <DashboardPanel products={products} lines={lines} refreshKey={dashboardRefreshKey} onOpenTraceability={openTraceability} canTraceability={canTrace} />}
+      {tab === 'dashboard' && <><MesQualityAlertsPanel user={user} refreshKey={dashboardRefreshKey} /><DashboardPanel products={products} lines={lines} refreshKey={dashboardRefreshKey} onOpenTraceability={openTraceability} canTraceability={canTrace} /></>}
       {tab === 'indicators' && canTrace && <IndicatorsPanel products={products} lines={lines} refreshKey={dashboardRefreshKey} />}
       {tab === 'operation' && <OperationPanel lines={lines} onChanged={refresh} refreshKey={operationRefreshKey} view="operation" />}
       {tab === 'orders' && canManageProduction && <ProductionOrdersPanel products={products} lines={lines} user={user} onChanged={refresh} />}

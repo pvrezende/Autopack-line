@@ -40,9 +40,9 @@ READ_REGISTERS: tuple[RegisterDefinition, ...] = (
     RegisterDefinition("D751", "AP_PLC_HEARTBEAT", "UINT16", "PLC_TO_PC", "Contador incrementado pelo CLP a cada 1 segundo."),
     RegisterDefinition("D752", "AP_ACK_SEQUENCE", "UINT16", "PLC_TO_PC", "Eco da sequência recebida."),
     RegisterDefinition("D753", "AP_RESULT_CODE", "UINT16", "PLC_TO_PC", "0 sem resposta; 1 aceita; 2 dados inválidos; 3 sequência duplicada; 4 ocupada; 5 falha; 6 ciclo concluído; 7 abortado."),
-    RegisterDefinition("D754", "AP_MACHINE_STATE", "UINT16", "PLC_TO_PC", "Estado oficial da máquina conforme adendo Rev.02."),
+    RegisterDefinition("D754", "AP_MACHINE_STATE", "UINT16", "PLC_TO_PC", "Estado oficial da máquina conforme adendo Rev.03."),
     RegisterDefinition("D755.0-D755.8", "AP_MACHINE_FLAGS", "WORD/BITS", "PLC_TO_PC", "READY, BUSY, FAULT, REQUEST_ACCEPTED, UNIT_PLACED, PALLET_COMPLETE, PALLET_CHANGE_ACTIVE, MAINTENANCE_MODE, PC_COMM_STALE."),
-    RegisterDefinition("D756", "AP_ACTIVE_FAULT_CODE", "UINT16", "PLC_TO_PC", "Código oficial de falha conforme adendo Rev.02."),
+    RegisterDefinition("D756", "AP_ACTIVE_FAULT_CODE", "UINT16", "PLC_TO_PC", "Código oficial de falha conforme adendo Rev.03."),
     RegisterDefinition("D757", "AP_PALLET_SEQUENCE", "UINT16", "PLC_TO_PC", "Identificador do palete atual."),
     RegisterDefinition("D758", "AP_BOXES_ON_PALLET", "UINT16", "PLC_TO_PC", "Quantidade confirmada no palete."),
     RegisterDefinition("D759", "AP_PALLET_CAPACITY", "UINT16", "PLC_TO_PC", "Capacidade da receita ativa; no modo real o CLP/IHM é a autoridade."),
@@ -50,14 +50,14 @@ READ_REGISTERS: tuple[RegisterDefinition, ...] = (
     RegisterDefinition("D761", "AP_COMPLETION_RESULT", "UINT16", "PLC_TO_PC", "0 nenhuma; 1 depositada; 2 rejeitada; 3 abortada."),
     RegisterDefinition("D762", "AP_PLACE_CONFIRM_SOURCE", "UINT16", "PLC_TO_PC", "0 nenhuma; 1 robô; 2 sensor/visão independente."),
     RegisterDefinition("D763", "AP_ACTIVE_RECIPE_ID", "UINT16", "PLC_TO_PC", "Receita ativa 1 a 8; liberação física informada pelo AUTOPACKLINE."),
-    RegisterDefinition("D764", "AP_LADDER_REVISION", "UINT16", "PLC_TO_PC", "Revisão do ladder; valor esperado 4."),
+    RegisterDefinition("D764", "AP_LADDER_REVISION", "UINT16", "PLC_TO_PC", "Revisão do ladder; valor esperado 6."),
     RegisterDefinition("D765", "AP_LADDER_YEAR", "UINT16", "PLC_TO_PC", "Ano da revisão; valor esperado 2026."),
-    RegisterDefinition("D766", "AP_LADDER_MONTH_DAY", "UINT16", "PLC_TO_PC", "Data MMDD; valor esperado 917."),
+    RegisterDefinition("D766", "AP_LADDER_MONTH_DAY", "UINT16", "PLC_TO_PC", "Data MMDD; valor esperado 918."),
     RegisterDefinition("D767-D776", "AP_READER_STATUS", "UINT16[]", "PLC_TO_PC", "Estado, resultado, sequência e diagnósticos do SR-1000."),
     RegisterDefinition("D777", "AP_READER_CAPABILITIES", "WORD", "PLC_TO_PC", "Capacidades ativas do bloco do leitor."),
     RegisterDefinition("D778", "AP_READER_BLOCK_START", "UINT16", "PLC_TO_PC", "Início do bloco do leitor; valor esperado 800."),
-    RegisterDefinition("D779", "AP_READER_BLOCK_LENGTH", "UINT16", "PLC_TO_PC", "Tamanho do bloco do leitor; valor esperado 80."),
-    RegisterDefinition("D800-D879", "AP_READER_BLOCK", "UINT16[]/ASCII", "PLC_TO_PC", "Bloco do SR-1000; D847-D878 preserva o dado bruto para auditoria."),
+    RegisterDefinition("D779", "AP_READER_BLOCK_LENGTH", "UINT16", "PLC_TO_PC", "Tamanho do bloco do leitor; valor esperado 89."),
+    RegisterDefinition("D800-D888", "AP_READER_BLOCK", "UINT16[]/ASCII", "PLC_TO_PC", "Bloco do SR-1000; D847-D887 preserva até 82 bytes brutos e D888 informa erro."),
 )
 
 
@@ -66,7 +66,7 @@ def get_modbus_contract() -> dict:
     commissioning = sorted({item.name for item in (*WRITE_REGISTERS, *READ_REGISTERS) if item.status == "COMMISSIONING_ONLY"})
     return {
         "stage": "7.33.1",
-        "status": "REV02_DEFINED_REV04_PENDING_PHYSICAL_VALIDATION",
+        "status": "REV03_DEFINED_REV06_PENDING_PHYSICAL_VALIDATION",
         "plc": {
             "manufacturer": "Delta",
             "model": "AS228T-A",
@@ -93,12 +93,12 @@ def get_modbus_contract() -> dict:
             "physical_cycle_timeout_allows_automatic_resend": False,
         },
         "write_range": "D700-D749",
-        "read_range": "D750-D779 + D800-D879",
+        "read_range": "D750-D779 + D800-D888",
         "write_registers": [asdict(item) for item in WRITE_REGISTERS],
         "read_registers": [asdict(item) for item in READ_REGISTERS],
         "normal_sequence": [
             "Incrementar D701 a cada 1 segundo.",
-            "Ler D750-D779 a cada 250 ms e D800-D879 quando D777 anunciar dados válidos.",
+            "Ler D750-D779 a cada 250 ms e D800-D888 quando D777 anunciar dados válidos.",
             "Antes do envio confirmar READY=1, BUSY=0 e FAULT=0.",
             "Validar QR/barcode e obter REQUEST_SEQUENCE única e persistente.",
             "Gravar primeiro D704-D749.",
@@ -126,5 +126,5 @@ def get_modbus_contract() -> dict:
         },
         "pending_automation": pending,
         "commissioning_validation": commissioning + ["MODBUS_REGISTER_OFFSET", "ASCII_BYTE_ORDER_AB12", "ISPsoft_COMPILE", "PHYSICAL_END_TO_END"],
-        "message": "Contrato Rev.02 confirmado na Ladder Rev.04. Leitura física permanece bloqueada até compilação no ISPSoft e validação segura na máquina.",
+        "message": "Contrato Rev.03 alinhado à Ladder Rev.06. Leitura física permanece bloqueada até compilação no ISPSoft e validação segura na máquina.",
     }

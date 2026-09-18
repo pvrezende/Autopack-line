@@ -64,10 +64,10 @@ export function Rev02CommissioningPanel() {
     </div>
 
     <details>
-      <summary><span><strong>Detalhes do contrato Modbus Rev.02</strong><small>D700–D779 + leitor D800–D879 · Ladder Rev.04</small></span><span className="retest-summary-actions"><span className="badge warning">FÍSICO BLOQUEADO</span><span className="retest-toggle" /></span></summary>
+      <summary><span><strong>Detalhes do contrato Modbus Rev.03</strong><small>D700–D779 + leitor D800–D888 · Ladder Rev.06</small></span><span className="retest-summary-actions"><span className="badge warning">FÍSICO BLOQUEADO</span><span className="retest-toggle" /></span></summary>
       <div className="rev02-content">
         {error && <div className="message error">{error}</div>}
-        {!data ? !error && <p>Carregando contrato Rev.02...</p> : <>
+        {!data ? !error && <p>Carregando contrato Rev.03...</p> : <>
           <div className="retest-status-strip">
             <span><small>ETAPA</small><strong>{data.stage}</strong></span>
             <span><small>CLP</small><strong>{data.connection.host}:{data.connection.port}</strong></span>
@@ -85,7 +85,7 @@ export function Rev02CommissioningPanel() {
           </div>
           <details className="compact-details"><summary>Estados oficiais da máquina ({data.machine_states.length})</summary><div className="rev02-chip-grid">{data.machine_states.map(item => <span key={item.code}><strong>{item.code}</strong>{item.label}</span>)}</div></details>
           <details className="compact-details"><summary>Receitas e liberação física</summary><div className="rev02-chip-grid">{data.recipes.map(item => <span key={item.id} className={item.released ? 'released' : 'pending'}><strong>{item.id}</strong>{item.name}<small>{item.released ? 'LIBERADA' : 'AGUARDA VALIDAÇÃO'}</small></span>)}</div></details>
-          <details className="compact-details"><summary>Capacidades anunciadas por D777</summary><div className="rev02-chip-grid">{Object.entries(data.reader.features).map(([name, active]) => <span key={name} className={active ? 'released' : 'pending'}><strong>{active ? 'ATIVA' : 'INATIVA'}</strong>{name}</span>)}</div><small>Com D777=3, zeros do leitor não são tratados como leituras reais.</small></details>
+          <details className="compact-details"><summary>Capacidades anunciadas por D777</summary><div className="rev02-chip-grid">{Object.entries(data.reader.features).map(([name, active]) => <span key={name} className={active ? 'released' : 'pending'}><strong>{active ? 'ATIVA' : 'INATIVA'}</strong>{name}</span>)}</div><small>Na Rev.06, D777=15 ativa dashboard, reteste, status e dado bruto; os campos parseados permanecem inativos.</small></details>
           <details className="compact-details"><summary>Gates para habilitar a leitura física</summary><ul className="rev02-gates">{data.safety_gates.map(gate => <li key={gate}>{gate}</li>)}</ul></details>
         </>}
       </div>

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.router import api_router
 from app.core.config import settings
 
-app = FastAPI(title=settings.app_name, version="0.4.0")
+app = FastAPI(title=settings.app_name, version="0.7.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -18,4 +18,4 @@ app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 @app.get("/")
 def root() -> dict[str, str]:
-    return {"name": settings.app_name, "version": "0.4.0"}
+    return {"name": settings.app_name, "version": "0.7.0"}

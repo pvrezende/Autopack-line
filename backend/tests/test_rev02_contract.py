@@ -5,12 +5,12 @@ from app.integrations.plc.rev02_contract import decode_features, decode_reader_b
 
 def test_rev02_identity_and_safe_defaults():
     result = get_rev02_diagnostic()
-    assert result["stage"] == "7.33"
-    assert result["identity_probe"] == {"D750": 1, "D764": 4, "D765": 2026, "D766": 917}
+    assert result["stage"] == "7.36"
+    assert result["identity_probe"] == {"D750": 1, "D764": 6, "D765": 2026, "D766": 918, "D777": 15, "D778": 800, "D779": 89}
     assert result["connection"]["host"] == "192.168.29.5"
     assert result["connection"]["socket_opened"] is False
     assert result["connection"]["physical_enabled"] is False
-    assert result["ranges"]["reader"] == "D800-D879"
+    assert result["ranges"]["reader"] == "D800-D888"
 
 
 def test_initial_feature_flags_only_dashboard_and_retest():

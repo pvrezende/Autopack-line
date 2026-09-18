@@ -49,7 +49,7 @@ def get_operational_health(db: Session) -> dict[str, Any]:
             "PLC_SIMULATOR",
             "READY",
             bool(simulator.get("physical_socket_opened") is False),
-            "Simulador Rev.02 D700-D779 e D800-D879 disponível sem socket físico.",
+            "Simulador Rev.03 D700-D779 e D800-D888 disponível sem socket físico.",
         ),
         _check(
             "RESILIENCE_MATRIX",

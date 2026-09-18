@@ -30,11 +30,11 @@ def decode_reader_block(
     *,
     feature_flags: int | None = None,
 ) -> dict:
-    missing = [address for address in range(800, 880) if address not in registers]
+    missing = [address for address in range(800, 889) if address not in registers]
     if missing:
         raise ValueError(f"Bloco do leitor incompleto: D{missing[0]} ausente")
 
-    for address in range(800, 880):
+    for address in range(800, 889):
         value = registers[address]
         if not isinstance(value, int) or isinstance(value, bool) or not 0 <= value <= 0xFFFF:
             raise ValueError(f"Valor UINT16 inválido em D{address}: {value}")
@@ -45,7 +45,7 @@ def decode_reader_block(
 
     features = decode_features(feature_flags) if feature_flags is not None else None
     if features is not None and not features["reader_raw_valid"]:
-        raise ValueError("D777 não autoriza o bloco bruto D800-D879")
+        raise ValueError("D777 não autoriza o bloco bruto D800-D888")
 
     def text(length_address: int, start: int, end: int, limit: int, flag_bit: int) -> str | None:
         if not registers[802] & (1 << flag_bit):
@@ -66,8 +66,8 @@ def decode_reader_block(
         "ean": text(820, 821, 827, 14, 1),
         "production_order": text(828, 829, 836, 16, 2),
         "model": text(837, 838, 845, 16, 3),
-        "raw": text(846, 847, 878, 64, 4),
-        "error_code": registers[879],
+        "raw": text(846, 847, 887, 82, 4),
+        "error_code": registers[888],
         "features": features,
     }
 
@@ -92,13 +92,13 @@ def decode_reader_snapshot(
 
 
 def sample_reader_registers() -> dict[int, int]:
-    registers = {address: 0 for address in range(800, 880)}
+    registers = {address: 0 for address in range(800, 889)}
     values = {
         "serial": (803, 804, "ARC881493129837", 32),
         "ean": (820, 821, "7908412552656", 14),
         "production_order": (828, 829, "000001275033", 16),
         "model": (837, 838, "HJFE12C2CG", 16),
-        "raw": (846, 847, "AB12;7908412552656;ARC881493129837;000001275033", 64),
+        "raw": (846, 847, "AB12;7908412552656;ARC881493129837;000001275033;https://x.co", 82),
     }
     registers[800], registers[801], registers[802] = 42, 1, 0b11111
     for _, (length_address, start, value, limit) in values.items():
@@ -108,14 +108,14 @@ def sample_reader_registers() -> dict[int, int]:
     return registers
 
 
-def get_rev02_diagnostic() -> dict:
-    initial_features = decode_features(3)
-    sample_reader = decode_reader_block(sample_reader_registers())
+def get_rev03_diagnostic() -> dict:
+    initial_features = decode_features(15)
+    sample_reader = decode_reader_block(sample_reader_registers(), feature_flags=15)
     return {
-        "stage": "7.33",
-        "reference": "ADENDO_INTERFACE_AUTOPACKLINE_REV02_2026-09-17",
-        "status": "REV02_READY_OFFLINE_PHYSICAL_READ_BLOCKED",
-        "ladder": {"file": "CLP_COMAU_rev04_autopackline.MPU", "revision": 4, "year": 2026, "mmdd": 917, "compiled_in_ispsoft": False, "validated_on_plc": False},
+        "stage": "7.36",
+        "reference": "ADENDO_INTERFACE_AUTOPACKLINE_REV03_2026-09-18",
+        "status": "REV03_READY_OFFLINE_PHYSICAL_READ_BLOCKED",
+        "ladder": {"file": "CLP_COMAU_rev06_scanner_full.MPU", "pou": "PRG_08_AUTOPACKLINE", "revision": 6, "year": 2026, "mmdd": 918, "compiled_in_ispsoft": False, "validated_on_plc": False},
         "connection": {
             "host": settings.plc_modbus_host, "port": settings.plc_modbus_port,
             "unit_id": settings.plc_modbus_unit_id, "pc_ip": settings.plc_pc_ip,
@@ -125,24 +125,30 @@ def get_rev02_diagnostic() -> dict:
             "read_only_enabled": settings.plc_read_only_enabled,
             "socket_opened": False,
         },
-        "ranges": {"pc_to_plc": "D700-D749", "plc_status": "D750-D779", "reader": "D800-D879"},
-        "identity_probe": {"D750": 1, "D764": 4, "D765": 2026, "D766": 917},
+        "ranges": {"pc_to_plc": "D700-D749", "plc_status": "D750-D779", "reader": "D800-D888"},
+        "identity_probe": {"D750": 1, "D764": 6, "D765": 2026, "D766": 918, "D777": 15, "D778": 800, "D779": 89},
         "machine_states": [{"code": code, "label": label} for code, label in MACHINE_STATES.items()],
         "recipes": [{"id": key, "name": value[0], "released": value[1]} for key, value in RECIPES.items()],
         "reader": {
             "architecture": "SR-1000 -> EtherNet/IP -> CLP Delta -> Modbus TCP -> AUTOPACKLINE",
             "state_codes": READER_STATES, "result_codes": READER_RESULTS,
-            "feature_flags_initial_value": 3, "features": initial_features,
-            "block_start": 800, "block_length": 80, "audit_source": "D847-D878",
+            "feature_flags_initial_value": 15, "features": initial_features,
+            "block_start": 800, "block_length": 89, "audit_source": "D847-D887",
+            "parsed_fields_enabled": False,
             "sample_decode": sample_reader,
         },
         "retest": {"authorized_flag": "D705.4", "original_sequence": "D749", "history_authority": "AUTOPACKLINE", "deposited_unit_requires_rework": True},
         "ab12": {"text": "AB12", "words": ["0x4142", "0x3132"], "confirmed_order": "HIGH_LOW"},
         "safety_gates": [
-            "Rev.04 aberta e compilada no ISPSoft", "Rev.04 comparada e validada no CLP",
+            "Rev.06 aberta e compilada no ISPSoft", "Rev.06 comparada e validada no CLP",
             "IP 192.168.29.10 aprovado pela TI", "porta física do switch confirmada",
             "offset 0-based/1-based validado", "byte order AB12 validado fisicamente",
             "assemblies EtherNet/IP do SR-1000 integrados e validados",
         ],
-        "message": "Contrato Rev.02, dois blocos e diagnósticos preparados offline. Nenhum socket físico é aberto e nenhuma escrita real é executada nesta etapa.",
+        "message": "Contrato Rev.03 preparado. A aplicação interpreta o conteúdo bruto do leitor; campos parseados permanecem desativados enquanto D777.4=0. Nenhum socket físico é aberto nesta tela.",
     }
+
+
+def get_rev02_diagnostic() -> dict:
+    """Alias temporário para clientes antigos; o conteúdo retornado já é Rev.03."""
+    return get_rev03_diagnostic()

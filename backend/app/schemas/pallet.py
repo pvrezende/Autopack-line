@@ -11,6 +11,7 @@ class PalletRead(BaseModel):
     target_quantity: int
     current_quantity: int
     status: str
+    quality_status: str
     opened_at: datetime
     completed_at: datetime | None
     closed_at: datetime | None

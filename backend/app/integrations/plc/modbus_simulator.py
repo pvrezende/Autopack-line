@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from .modbus_codec import AsciiByteOrder, ModbusPayload, build_write_registers, decode_read_registers
-from .rev02_contract import sample_reader_registers
+from .rev03_contract import sample_reader_registers
 
 
 class SimulatorPhase(str, Enum):
@@ -24,7 +24,7 @@ class SimulatorConfig:
 
 
 class ModbusPlcSimulator:
-    """Simulador determinístico do contrato lógico Rev.02.
+    """Simulador determinístico do contrato lógico Rev.03.
 
     Não abre socket, não usa offset Modbus e não representa o ladder real. O objetivo
     é exercitar offline o mesmo mapa de registradores e as mesmas transições que o
@@ -34,14 +34,14 @@ class ModbusPlcSimulator:
     def __init__(self, config: SimulatorConfig | None = None) -> None:
         self.config = config or SimulatorConfig()
         self.pc = {address: 0 for address in range(700, 750)}
-        self.plc = {address: 0 for address in range(750, 880)}
+        self.plc = {address: 0 for address in range(750, 889)}
         self.phase = SimulatorPhase.READY
         self._last_sequence = 0
         self.reset()
 
     def reset(self) -> None:
         self.pc.update({address: 0 for address in range(700, 750)})
-        self.plc.update({address: 0 for address in range(750, 880)})
+        self.plc.update({address: 0 for address in range(750, 889)})
         self.plc[750] = 1
         self.plc[751] = 1
         self.plc[754] = 0
@@ -50,12 +50,12 @@ class ModbusPlcSimulator:
         self.plc[759] = self.config.pallet_capacity
         self.plc[762] = 1  # ROBOT_PLACE_COMPLETE, conforme contrato atual
         self.plc[763] = self.config.active_recipe_id
-        self.plc[764] = 4
+        self.plc[764] = 6
         self.plc[765] = 2026
-        self.plc[766] = 917
-        self.plc[777] = 3
+        self.plc[766] = 918
+        self.plc[777] = 15
         self.plc[778] = 800
-        self.plc[779] = 80
+        self.plc[779] = 89
         self.phase = SimulatorPhase.READY
         self._last_sequence = 0
 
@@ -78,9 +78,9 @@ class ModbusPlcSimulator:
         self.write_trigger(registers)
         return self.snapshot()
 
-    def publish_reader_data(self, registers: dict[int, int] | None = None, *, parsed_fields_valid: bool = True) -> None:
+    def publish_reader_data(self, registers: dict[int, int] | None = None, *, parsed_fields_valid: bool = False) -> None:
         reader = registers or sample_reader_registers()
-        missing = [address for address in range(800, 880) if address not in reader]
+        missing = [address for address in range(800, 889) if address not in reader]
         if missing:
             raise ValueError(f"Bloco do leitor incompleto: D{missing[0]} ausente")
         self.plc.update(reader)
@@ -199,15 +199,15 @@ def get_simulator_diagnostic() -> dict:
         "stage": "7.19",
         "status": "FULL_REGISTER_SIMULATOR_READY_OFFLINE",
         "physical_connection_required": False,
-        "adapter": "SIMULATOR_MODBUS_REV02_V2",
-        "logical_register_range": "D700-D779 + D800-D879",
+        "adapter": "SIMULATOR_MODBUS_REV03_V3",
+        "logical_register_range": "D700-D779 + D800-D888",
         "socket_opened": False,
         "modbus_offset_applied": False,
         "byte_order_for_test_only": "HIGH_LOW",
         "capabilities": [
             "D700-D749 em memória com escrita em duas fases",
-            "D750-D779 em memória com identidade Rev.04 e diagnóstico do leitor",
-            "D800-D879 em memória para simulação do bloco SR-1000",
+            "D750-D779 em memória com identidade Rev.06 e diagnóstico do leitor",
+            "D800-D888 em memória para simulação do bloco SR-1000",
             "ACK D752/D753", "READY/BUSY/FAULT e bits D755", "heartbeat D751",
             "conclusão D760/D761", "palete D757-D759", "rejeição e aborto",
         ],
@@ -219,5 +219,5 @@ def get_simulator_diagnostic() -> dict:
         },
         "pending_commissioning": ["ASCII_BYTE_ORDER_AB12", "MODBUS_REGISTER_OFFSET", "ISPsoft_COMPILE", "PHYSICAL_END_TO_END"],
         "pending_automation": [],
-        "message": "Simulador Rev.02 dos blocos D700-D779 e D800-D879 preparado offline; nenhuma conexão com a máquina real é aberta nesta etapa.",
+        "message": "Simulador Rev.03 dos blocos D700-D779 e D800-D888 preparado offline; nenhuma conexão com a máquina real é aberta nesta etapa.",
     }

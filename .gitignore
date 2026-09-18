@@ -10,3 +10,10 @@ __pycache__/
 .vscode/
 .idea/
 .DS_Store
+
+# Arquivos locais e backups de ambiente
+.env
+.env-*
+.env.backup-*
+!.env.example
+!backend/.env.example

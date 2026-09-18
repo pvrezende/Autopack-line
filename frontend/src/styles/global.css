@@ -95,6 +95,18 @@ th { color: #6b7280; font-size: .76rem; text-transform: uppercase; letter-spacin
   .section-heading { flex-direction: column; }
 }
 
+/* Rev.03 — contenção de NG do MES sem parada da linha */
+.mes-quality-panel { border:1px solid #86efac; background:#f0fdf4; border-radius:14px; padding:14px 16px; margin-bottom:12px; display:grid; gap:9px; }
+.mes-quality-panel.has-ng { border:2px solid #f59e0b; background:#fffbeb; box-shadow:0 0 0 3px rgba(245,158,11,.10); }
+.mes-quality-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.mes-quality-heading h2 { margin:0; }
+.mes-quality-panel > p { margin:0; color:#475569; }
+.mes-ng-item { display:grid; grid-template-columns:minmax(220px,1fr) minmax(260px,1.4fr) minmax(210px,1fr) auto; align-items:center; gap:10px; border:1px solid #f59e0b; background:white; border-radius:10px; padding:10px; }
+.mes-ng-item > strong { color:#b45309; }
+.mes-ng-item small { grid-column:1 / -2; color:#7c2d12; }
+.mes-ng-item button { grid-column:4; grid-row:1 / 3; }
+@media (max-width:1000px) { .mes-ng-item { grid-template-columns:1fr; } .mes-ng-item small,.mes-ng-item button { grid-column:1; grid-row:auto; } }
+
 .trace-block { border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 20px; }
 .trace-block:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
 .trace-title { display: flex; justify-content: space-between; align-items: start; gap: 16px; margin-bottom: 14px; }

@@ -3,13 +3,13 @@ from app.integrations.plc.modbus_contract import get_modbus_contract
 
 def test_contract_has_expected_network_and_ranges():
     contract = get_modbus_contract()
-    assert contract["status"] == "REV02_DEFINED_REV04_PENDING_PHYSICAL_VALIDATION"
+    assert contract["status"] == "REV03_DEFINED_REV06_PENDING_PHYSICAL_VALIDATION"
     assert contract["plc"]["manufacturer"] == "Delta"
     assert contract["plc"]["model"] == "AS228T-A"
     assert contract["plc"]["protocol"] == "MODBUS_TCP"
     assert contract["plc"]["tcp_port"] == 502
     assert contract["write_range"] == "D700-D749"
-    assert contract["read_range"] == "D750-D779 + D800-D879"
+    assert contract["read_range"] == "D750-D779 + D800-D888"
     assert contract["network_proposal"]["plc_ip"] == "192.168.29.5"
 
 

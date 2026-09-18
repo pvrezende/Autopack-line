@@ -53,9 +53,9 @@ def get_commissioning_plan(db: Session) -> dict[str, Any]:
             "Health-check saudável e gate 7.26 sem bloqueio de software.", False,
         ),
         _step(
-            "AUTOMATION_CONTRACT", 3, "Compilar e comparar Ladder Rev.04", "AUTOMATION",
+            "AUTOMATION_CONTRACT", 3, "Compilar e comparar Ladder Rev.06", "AUTOMATION",
             "WAIT_AUTOMATION" if automation_pending else "READY",
-            "Abrir a Rev.04 no ISPSoft, compilar, comparar com o CLP e registrar a evidência antes de liberar o modo real.",
+            "Abrir a Rev.06 no ISPSoft, compilar, comparar com o CLP e registrar a evidência antes de liberar o modo real.",
             "Confirmação da automação + tabelas aprovadas.", False,
         ),
         _step(
@@ -69,7 +69,7 @@ def get_commissioning_plan(db: Session) -> dict[str, Any]:
             "Offset confirmado e AB12 decodificado corretamente.", True,
         ),
         _step(
-            "READ_ONLY_STATUS", 6, "Validar leitura D750-D779 e D800-D879", "FACTORY", "WAIT_FACTORY",
+            "READ_ONLY_STATUS", 6, "Validar leitura D750-D779 e D800-D888", "FACTORY", "WAIT_FACTORY",
             "Iniciar em modo somente leitura: versão do protocolo, heartbeat, estados, falha, palete e receita.",
             "Leituras coerentes por janela de observação sem escrita de comando.", True,
         ),
@@ -129,7 +129,7 @@ def get_commissioning_plan(db: Session) -> dict[str, Any]:
         "wait_factory_count": wait_factory_count,
         "blocked_count": blocked_count,
         "steps": steps,
-        "execution_rule": "Executar em ordem. Não pular compilação Rev.04, leitura somente D750-D779/D800-D879 ou validação AB12/offset.",
+        "execution_rule": "Executar em ordem. Não pular compilação Rev.06, leitura somente D750-D779/D800-D888 ou validação AB12/offset.",
         "stop_rule": "Qualquer divergência de sequência, heartbeat, byte order, offset ou estado da máquina interrompe o comissionamento até análise.",
         "next_offline_focus": "Preparar checklist/evidências e continuar software; nenhuma conexão física é necessária nesta etapa.",
         "message": "Plano de comissionamento preparado offline; execução física continua bloqueada até os gates anteriores serem liberados.",

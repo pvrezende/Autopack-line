@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     retest_enabled: bool = False
     retest_simulator_enabled: bool = True
     retest_max_attempts: int = Field(default=2, ge=1, le=20)
+    mes_quality_enabled: bool = False
+    mes_quality_simulator_enabled: bool = True
+    mes_quality_mode: Literal["PENDING_CONTRACT", "SIMULATOR", "ELGIN_API"] = "PENDING_CONTRACT"
+    mes_quality_base_url: str = ""
+    mes_quality_timeout_ms: int = Field(default=3000, ge=100, le=30000)
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

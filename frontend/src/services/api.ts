@@ -191,7 +191,23 @@ export function getPlcModbusContract() {
 }
 
 export function getPlcRev02() {
-  return request<import('../types/domain').PlcRev02Diagnostic>('/integrations/plc/rev02')
+  return request<import('../types/domain').PlcRev03Diagnostic>('/integrations/plc/rev03')
+}
+
+export function getMesQualityStatus() {
+  return request<import('../types/domain').MesQualityStatus>('/mes-quality/status')
+}
+
+export function listMesQualityIncidents(status = 'PENDING_REMOVAL') {
+  return request<import('../types/domain').MesQualityIncident[]>(`/mes-quality/incidents?status=${encodeURIComponent(status)}`)
+}
+
+export function simulateMesQualityResult(payload:{ serial_number:string; result:'OK'|'NG'; external_event_id?:string }) {
+  return request('/mes-quality/simulate-result', { method:'POST', body:JSON.stringify(payload) })
+}
+
+export function confirmMesNgRemoval(incidentId:number, note:string) {
+  return request(`/mes-quality/incidents/${incidentId}/confirm-removal`, { method:'POST', body:JSON.stringify({ note }) })
 }
 
 export function createReworkOrder(payload: { serial_number:string; reason:string }) {

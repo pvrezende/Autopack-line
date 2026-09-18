@@ -164,11 +164,11 @@ export type PlcModbusRegister = {
   status: 'DEFINED' | 'PENDING_AUTOMATION' | 'COMMISSIONING_ONLY'
 }
 
-export type PlcRev02Diagnostic = {
+export type PlcRev03Diagnostic = {
   stage: string
   reference: string
   status: string
-  ladder: { file:string; revision:number; year:number; mmdd:number; compiled_in_ispsoft:boolean; validated_on_plc:boolean }
+  ladder: { file:string; pou?:string; revision:number; year:number; mmdd:number; compiled_in_ispsoft:boolean; validated_on_plc:boolean }
   connection: { host:string; port:number; unit_id:number; pc_ip:string; netmask:string; address_base:number; ascii_byte_order:string; physical_enabled:boolean; read_only_enabled:boolean; socket_opened:boolean }
   ranges: { pc_to_plc:string; plc_status:string; reader:string }
   identity_probe: Record<string, number>
@@ -181,9 +181,23 @@ export type PlcRev02Diagnostic = {
   message: string
 }
 
+export type PlcRev02Diagnostic = PlcRev03Diagnostic
+
+export type MesQualityIncident = {
+  id:number; status:string; serial_number:string; result:'NG'; source:string; tested_at:string
+  pallet_id:number; pallet_code:string; pallet_position:number; product_model:string
+  production_order:string; detected_at:string; resolved_at:string|null
+  resolved_by_username:string|null; resolution_note:string|null
+}
+
+export type MesQualityStatus = {
+  enabled:boolean; simulator_enabled:boolean; mode:string; endpoint_configured:boolean
+  line_stops_on_ng:boolean; message:string
+}
+
 export type PlcModbusContract = {
   stage: string
-  status: 'REV02_DEFINED_REV04_PENDING_PHYSICAL_VALIDATION'
+  status: 'REV03_DEFINED_REV06_PENDING_PHYSICAL_VALIDATION'
   plc: { manufacturer:string; model:string; role:string; protocol:string; tcp_port:number }
   network_proposal: { plc_ip:string; pc_ip:string; netmask:string; gateway:string | null; topology:string }
   timing: { poll_interval_ms:number; heartbeat_interval_ms:number; transport_timeout_ms:number; transport_retry_attempts:number; transport_retry_interval_ms:number; ack_timeout_ms:number; physical_cycle_timeout_ms:number; heartbeat_stale_ms:number; physical_cycle_timeout_allows_automatic_resend:boolean }
@@ -509,6 +523,7 @@ export type Pallet = {
   target_quantity: number
   current_quantity: number
   status: string
+  quality_status: string
   opened_at: string
   completed_at: string | null
   closed_at: string | null

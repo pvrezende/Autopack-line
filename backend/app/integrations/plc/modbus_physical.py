@@ -6,7 +6,7 @@ from app.core.config import settings
 from app.integrations.plc.modbus_codec import AsciiByteOrder, decode_read_registers
 from app.integrations.plc.modbus_contract import get_modbus_contract
 from app.integrations.plc.modbus_transport import ModbusTcpClient, ModbusTcpTarget, ModbusTransportError
-from app.integrations.plc.rev02_contract import decode_features, decode_reader_snapshot
+from app.integrations.plc.rev03_contract import decode_features, decode_reader_snapshot
 
 
 @dataclass(frozen=True)
@@ -98,7 +98,7 @@ class PhysicalModbusAdapter:
             "pending_commissioning": pending_commissioning,
             "commissioning_gates": commissioning_gates,
             "activation_gates": [
-                "Ladder Rev.04 compilado no ISPSoft e comparado com o CLP",
+                "Ladder Rev.06 compilado no ISPSoft e comparado com o CLP",
                 "Offset/endereço Modbus validado no CLP real",
                 "Byte order ASCII AB12 validado no CLP real",
                 "Porta física do switch e rede 192.168.29.0/24 validadas",
@@ -128,10 +128,10 @@ class PhysicalModbusAdapter:
         try:
             values = transport.read_holding_registers(self._address_for(750), 30)
             status = {750 + index: value for index, value in enumerate(values)}
-            expected = {750: 1, 764: 4, 765: 2026, 766: 917, 778: 800, 779: 80}
+            expected = {750: 1, 764: 6, 765: 2026, 766: 918, 777: 15, 778: 800, 779: 89}
             mismatches = {key: {"expected": value, "received": status[key]} for key, value in expected.items() if status[key] != value}
             if mismatches:
-                raise ValueError(f"Identidade Rev.04 incompatível: {mismatches}")
+                raise ValueError(f"Identidade Rev.06 incompatível: {mismatches}")
             result = {
                 **diagnostic,
                 "connection_attempted": True,
@@ -145,12 +145,12 @@ class PhysicalModbusAdapter:
                 "reader": None,
             }
             if result["features"]["reader_raw_valid"]:
-                reader_values = transport.read_holding_registers(self._address_for(800), 80)
+                reader_values = transport.read_holding_registers(self._address_for(800), 89)
                 after_values = transport.read_holding_registers(self._address_for(750), 30)
                 reader = {800 + index: value for index, value in enumerate(reader_values)}
                 after = {750 + index: value for index, value in enumerate(after_values)}
                 result["reader"] = decode_reader_snapshot(status, reader, after, AsciiByteOrder(self.config.ascii_byte_order))
-                result["probe"] = "READ_REV02_SNAPSHOT_OK"
+                result["probe"] = "READ_REV03_SNAPSHOT_OK"
             return result
         except (ModbusTransportError, ValueError, UnicodeDecodeError) as exc:
             return {**diagnostic, "connection_attempted": True, "connected": False, "probe": "PROBE_ERROR", "message": str(exc)}

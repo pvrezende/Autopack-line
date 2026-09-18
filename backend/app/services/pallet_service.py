@@ -60,8 +60,11 @@ class PalletService:
                 position=payload.position,
             )
             db.add(item)
+            db.flush()
             pallet.current_quantity = sequence
             unit.status = "PALLETIZED"
+            from app.services.mes_quality_service import MesQualityService
+            MesQualityService().register_placement(db, unit, pallet, item)
             completed_now = sequence >= pallet.target_quantity
             if completed_now:
                 pallet.status = "FULL"

@@ -17,6 +17,8 @@ from app.models.plc_transaction import PlcTransaction
 from app.models.retest_attempt import RetestAttempt
 from app.models.plc_reader_event import PlcReaderEvent
 from app.models.rework_order import ReworkOrder
+from app.models.mes_quality_result import MesQualityResult
+from app.models.pallet_quality_incident import PalletQualityIncident
 
 __all__ = [
     "Product",
@@ -38,4 +40,6 @@ __all__ = [
     "RetestAttempt",
     "PlcReaderEvent",
     "ReworkOrder",
+    "MesQualityResult",
+    "PalletQualityIncident",
 ]

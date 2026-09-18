@@ -15,6 +15,7 @@ class Pallet(Base):
     target_quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     current_quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="OPEN", index=True)
+    quality_status: Mapped[str] = mapped_column(String(30), nullable=False, default="CLEAR", index=True)
     opened_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

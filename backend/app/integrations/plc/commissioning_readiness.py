@@ -69,10 +69,10 @@ def get_commissioning_readiness(db: Session) -> dict[str, Any]:
         ),
         _item(
             "LADDER_REV04_ISPSOFT",
-            "Ladder Rev.04 no ISPSoft",
+            "Ladder Rev.06 no ISPSoft",
             "AUTOMATION",
             "READY" if ladder_ready else "PENDING_AUTOMATION",
-            "Rev.04 compilada/comparada no ISPSoft." if ladder_ready else "Abrir, compilar e comparar a Rev.04 no ISPSoft antes do download e do teste físico.",
+            "Rev.06 compilada/comparada no ISPSoft." if ladder_ready else "Abrir, compilar e comparar a Rev.06 no ISPSoft antes do download e do teste físico.",
             not ladder_ready,
         ),
         _item(

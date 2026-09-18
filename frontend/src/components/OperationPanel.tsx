@@ -723,7 +723,7 @@ export function OperationPanel({ lines, onChanged, refreshKey = 0, view = 'opera
             <span><strong>ACK:</strong> {modbusContract.timing.ack_timeout_ms / 1000} s</span>
             <span><strong>Ciclo físico:</strong> {modbusContract.timing.physical_cycle_timeout_ms / 1000} s</span>
           </div>
-          <div className="message warning"><strong>Comunicação física protegida.</strong> A Rev.04 está definida, mas o socket permanece desabilitado até compilação no ISPSoft e validação segura na máquina. Timeout físico não autoriza reenvio automático.</div>
+          <div className="message warning"><strong>Comunicação física protegida.</strong> A Rev.06 está definida, mas o socket permanece desabilitado até compilação no ISPSoft e validação segura na máquina. Timeout físico não autoriza reenvio automático.</div>
           <div className="reader-diagnostic-grid">
             <div><span>Pendências automação</span><strong>{modbusContract.pending_automation.length}</strong><small>{modbusContract.pending_automation.join(', ')}</small></div>
             <div><span>Somente comissionamento</span><strong>{modbusContract.commissioning_validation.length}</strong><small>{modbusContract.commissioning_validation.join(', ')}</small></div>
@@ -734,14 +734,14 @@ export function OperationPanel({ lines, onChanged, refreshKey = 0, view = 'opera
 
       <button type="button" className={`config-toggle operation-accordion-toggle ${openReaderPanel === 'codec' ? 'active' : ''}`} onClick={() => setOpenReaderPanel(openReaderPanel === 'codec' ? null : 'codec')}>
         <span className="config-hamburger">☰</span>
-        <span><strong>Codec Modbus Rev.02 — UINT16 / WORD / ASCII</strong><small>{modbusCodec?.message ?? modbusCodecError ?? 'Carregando codec técnico...'}</small></span>
+        <span><strong>Codec Modbus Rev.03 — UINT16 / WORD / ASCII</strong><small>{modbusCodec?.message ?? modbusCodecError ?? 'Carregando codec técnico...'}</small></span>
         <span className="badge green">OFFLINE</span>
         <b>{openReaderPanel === 'codec' ? '−' : '+'}</b>
       </button>
       {openReaderPanel === 'codec' && <div className="operation-accordion-content plc-integration-card">
         {modbusCodec ? <>
           <div className="reader-diagnostic-grid">
-            <div><span>Endereçamento</span><strong>D700–D779 + D800–D879</strong><small>offset físico configurável; validação em campo pendente</small></div>
+            <div><span>Endereçamento</span><strong>D700–D779 + D800–D888</strong><small>offset físico configurável; validação em campo pendente</small></div>
             <div><span>ASCII</span><strong>{modbusCodec.ascii.characters_per_register} caracteres / registrador</strong><small>{modbusCodec.ascii.accent_policy}</small></div>
             <div><span>Byte order</span><strong>PENDENTE AB12</strong><small>não fixado antes do comissionamento</small></div>
             <div><span>Ordem de escrita</span><strong>{modbusCodec.write_order.join(' → ')}</strong><small>payload antes do disparo</small></div>
@@ -803,7 +803,7 @@ export function OperationPanel({ lines, onChanged, refreshKey = 0, view = 'opera
       {openReaderPanel === 'supervision' && <div className="operation-accordion-content plc-integration-card">
         {modbusSupervision ? <>
           <div className="reader-diagnostic-grid">
-            <div><span>Polling CLP</span><strong>D750–D779 · {modbusSupervision.polling.interval_ms} ms</strong><small>D800–D879 condicionado ao D777</small></div>
+            <div><span>Polling CLP</span><strong>D750–D779 · {modbusSupervision.polling.interval_ms} ms</strong><small>D800–D888 condicionado ao D777</small></div>
             <div><span>Heartbeat PC</span><strong>D701 · {modbusSupervision.pc_heartbeat.interval_ms / 1000} s</strong><small>contador UINT16 incremental</small></div>
             <div><span>Heartbeat CLP</span><strong>D751 · stale em {modbusSupervision.plc_heartbeat.stale_after_ms / 1000} s</strong><small>sem alteração bloqueia produção</small></div>
             <div><span>Transporte Modbus</span><strong>{modbusSupervision.transport.retry_attempts} tentativas · timeout {modbusSupervision.transport.timeout_ms / 1000} s</strong><small>intervalo {modbusSupervision.transport.retry_interval_ms / 1000} s</small></div>
@@ -857,7 +857,7 @@ export function OperationPanel({ lines, onChanged, refreshKey = 0, view = 'opera
 
       <button type="button" className={`config-toggle operation-accordion-toggle ${openReaderPanel === 'simulator719' ? 'active' : ''}`} onClick={() => setOpenReaderPanel(openReaderPanel === 'simulator719' ? null : 'simulator719')}>
         <span className="config-hamburger">☰</span>
-        <span><strong>Simulador CLP — contrato Rev.02 completo</strong><small>{modbusSimulator?.message ?? modbusSimulatorError ?? 'Carregando simulador lógico...'}</small></span>
+        <span><strong>Simulador CLP — contrato Rev.03 completo</strong><small>{modbusSimulator?.message ?? modbusSimulatorError ?? 'Carregando simulador lógico...'}</small></span>
         <span className="badge green">SIMULADOR</span>
         <b>{openReaderPanel === 'simulator719' ? '−' : '+'}</b>
       </button>
@@ -869,7 +869,7 @@ export function OperationPanel({ lines, onChanged, refreshKey = 0, view = 'opera
             <div><span>ACK exemplo</span><strong>SEQ {modbusSimulator.sample_flow.after_command.ack_sequence}</strong><small>{modbusSimulator.sample_flow.after_command.result}</small></div>
             <div><span>Conclusão exemplo</span><strong>{modbusSimulator.sample_flow.after_completion.completion}</strong><small>D760={modbusSimulator.sample_flow.after_completion.completed_sequence}</small></div>
           </div>
-          <div className="message success"><strong>Fluxo exercitado:</strong> COMMAND → ACK → BUSY → D760/D761, com extensão de diagnóstico D764–D779 e leitor D800–D879. A etapa permanece 100% offline.</div>
+          <div className="message success"><strong>Fluxo exercitado:</strong> COMMAND → ACK → BUSY → D760/D761, com extensão de diagnóstico D764–D779 e leitor D800–D888. A etapa permanece 100% offline.</div>
           <div className="plc-retry-summary">
             <span><strong>Socket físico:</strong> {modbusSimulator.socket_opened ? 'ABERTO' : 'NÃO ABERTO'}</span>
             <span><strong>Capacidades:</strong> {modbusSimulator.capabilities.length}</span>
@@ -910,7 +910,7 @@ export function OperationPanel({ lines, onChanged, refreshKey = 0, view = 'opera
             <span><strong>Pendências comissionamento:</strong> {modbusPhysical.pending_commissioning.length}</span>
           </div>
           <div className="plc-control-actions">
-            <button type="button" className="secondary" disabled={!modbusPhysical.activation_allowed || modbusPhysicalLoading} onClick={() => { void probePhysicalReadOnly() }}>{modbusPhysicalLoading ? 'Lendo identidade...' : 'Testar identidade Rev.04 (somente leitura)'}</button>
+            <button type="button" className="secondary" disabled={!modbusPhysical.activation_allowed || modbusPhysicalLoading} onClick={() => { void probePhysicalReadOnly() }}>{modbusPhysicalLoading ? 'Lendo identidade...' : 'Testar identidade Rev.06 (somente leitura)'}</button>
           </div>
           {modbusPhysical.probe && <small>Resultado da sondagem: {modbusPhysical.probe} · conexão: {modbusPhysical.connected ? 'OK' : 'não estabelecida'}</small>}
           <small>Escrita preparada: {modbusPhysical.write_order.join(' → ')}. Reconexão lê primeiro {modbusPhysical.reconnect_read_first.join(' / ')}.</small>
