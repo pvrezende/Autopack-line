@@ -21,6 +21,8 @@ class ModbusPayload:
     ean: str
     production_order: str
     model: str
+    retest_authorized: bool = False
+    original_request_sequence: int = 0
 
 
 RESULT_CODES = {
@@ -36,6 +38,27 @@ RESULT_CODES = {
 
 COMPLETION_RESULTS = {0: "NONE", 1: "PLACED", 2: "REJECTED", 3: "ABORTED"}
 PLACE_CONFIRM_SOURCES = {0: "NONE", 1: "ROBOT_PLACE_COMPLETE", 2: "INDEPENDENT_SENSOR_OR_VISION"}
+
+MACHINE_STATES = {
+    0: "INIT", 10: "WAIT_PERMISSIVES", 20: "WAIT_ROBOT", 30: "CHECK_PALLET",
+    40: "FEED_EMPTY_PALLET", 50: "READY", 60: "WAIT_ROBOT_START_ACK",
+    65: "WAIT_TAPE_ENTRY", 66: "MOVE_TAPE", 67: "APPLY_TAPE",
+    80: "WAIT_ROBOT_PICK", 90: "WAIT_ROBOT_PLACE", 100: "PALLET_COMPLETE",
+    110: "DISCHARGE_PALLET", 900: "FAULT",
+}
+
+FAULT_CODES = {
+    0: "NO_FAULT", 100: "SAFETY_CIRCUIT_NOT_CONFIRMED", 110: "LOW_AIR_PRESSURE",
+    120: "PALLET_FEEDER_MOTOR_PROTECTION", 121: "ENTRY_CONVEYOR_PROTECTION",
+    122: "TAPE_CONVEYOR_PROTECTION", 123: "DISCHARGE_CONVEYOR_PROTECTION",
+    130: "TAPE_APPLICATOR_FAULT", 140: "COMAU_FAULT", 141: "COMAU_READY_LOST",
+    150: "TAPE_POSITION_SENSORS_CONFLICT", 151: "PALLET_POSITION_WITHOUT_PRESENCE",
+    160: "RECIPE_CONFIRMATION_LOST", 410: "PALLET_FEED_TIMEOUT",
+    610: "ROBOT_START_ACK_TIMEOUT", 650: "TAPE_ENTRY_TIMEOUT",
+    660: "TAPE_CONVEYOR_TIMEOUT", 670: "TAPE_APPLICATION_TIMEOUT",
+    810: "ROBOT_PICK_TIMEOUT", 910: "ROBOT_PLACE_TIMEOUT",
+    1110: "PALLET_DISCHARGE_TIMEOUT", 9999: "INVALID_INTERNAL_STATE",
+}
 
 MACHINE_FLAG_BITS = {
     0: "machine_ready",
@@ -96,7 +119,7 @@ def decode_ascii_registers(registers: Iterable[int], length: int, byte_order: As
     return bytes(raw[:length]).decode("ascii", errors="strict")
 
 
-def payload_flags(*, serial: str, ean: str, production_order: str, model: str) -> int:
+def payload_flags(*, serial: str, ean: str, production_order: str, model: str, retest_authorized: bool = False) -> int:
     flags = 0
     if serial:
         flags |= 1 << 0
@@ -106,6 +129,8 @@ def payload_flags(*, serial: str, ean: str, production_order: str, model: str) -
         flags |= 1 << 2
     if model:
         flags |= 1 << 3
+    if retest_authorized:
+        flags |= 1 << 4
     return flags
 
 
@@ -129,6 +154,9 @@ def build_write_registers(payload: ModbusPayload, byte_order: AsciiByteOrder) ->
     if command not in {0, 1, 2, 3, 4}:
         raise ValueError("AP_COMMAND deve ser 0, 1, 2, 3 ou 4")
     recipe_id = _uint16(payload.recipe_id, "AP_RECIPE_ID")
+    original_request_sequence = _uint16(payload.original_request_sequence, "AP_ORIGINAL_REQUEST_SEQUENCE")
+    if payload.retest_authorized != (original_request_sequence != 0):
+        raise ValueError("Reteste exige D705.4=1 e D749 diferente de zero; pedido normal exige ambos zerados")
 
     serial = _ascii_bytes(payload.serial, 32, "AP_SERIAL").decode("ascii")
     ean = _ascii_bytes(payload.ean, 14, "AP_EAN").decode("ascii")
@@ -138,7 +166,10 @@ def build_write_registers(payload: ModbusPayload, byte_order: AsciiByteOrder) ->
     registers = {address: 0 for address in range(700, 750)}
     # D704-D749 são o payload gravado primeiro.
     registers[704] = recipe_id
-    registers[705] = payload_flags(serial=serial, ean=ean, production_order=production_order, model=model)
+    registers[705] = payload_flags(
+        serial=serial, ean=ean, production_order=production_order, model=model,
+        retest_authorized=payload.retest_authorized,
+    )
     registers[706] = len(serial)
     _place(registers, 707, encode_ascii_registers(serial, 32, byte_order))
     registers[723] = len(ean)
@@ -147,7 +178,7 @@ def build_write_registers(payload: ModbusPayload, byte_order: AsciiByteOrder) ->
     _place(registers, 732, encode_ascii_registers(production_order, 16, byte_order))
     registers[740] = len(model)
     _place(registers, 741, encode_ascii_registers(model, 16, byte_order))
-    registers[749] = 0
+    registers[749] = original_request_sequence
 
     # D700-D703 são deliberadamente montados por último no fluxo de escrita real.
     registers[700] = protocol_version
@@ -171,11 +202,11 @@ def decode_read_registers(registers: dict[int, int]) -> dict:
         "result_code": values[753],
         "result_name": RESULT_CODES.get(values[753], "UNKNOWN"),
         "machine_state": values[754],
-        "machine_state_text": None,  # tabela D754 pendente da automação
+        "machine_state_text": MACHINE_STATES.get(values[754], "UNKNOWN"),
         "machine_flags_word": flag_word,
         "machine_flags": flags,
         "active_fault_code": values[756],
-        "active_fault_text": None,  # tabela D756 pendente da automação
+        "active_fault_text": FAULT_CODES.get(values[756], "UNKNOWN"),
         "pallet_sequence": values[757],
         "boxes_on_pallet": values[758],
         "pallet_capacity": values[759],
@@ -229,7 +260,7 @@ def get_codec_diagnostic() -> dict:
                 "LOW_HIGH": [f"0x{x:04X}" for x in low_high],
             },
         },
-        "payload_flags": {"serial_bit": 0, "ean_bit": 1, "op_bit": 2, "model_bit": 3},
+        "payload_flags": {"serial_bit": 0, "ean_bit": 1, "op_bit": 2, "model_bit": 3, "retest_authorized_bit": 4},
         "sample_payload": asdict(sample),
         "sample_write_registers_provisional_high_low": register_map(default_write),
         "sample_read_decode": decode_read_registers(simulated_read),

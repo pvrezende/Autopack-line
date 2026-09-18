@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_roles
 from app.database.session import get_db
 from app.integrations.reader import ReaderGateway, ReaderInput
 from app.models.user import User
@@ -63,7 +63,7 @@ def ingest_reader(
 
 
 # ETAPA 7.4 — contrato de integração CLP/robô (simulado até definição do hardware real)
-from app.integrations.plc import PlcConfirmation, PlcGateway, plc_cycle_state, get_modbus_contract, get_codec_diagnostic, get_handshake_diagnostic, get_supervision_diagnostic, get_reconciliation_diagnostic, get_simulator_diagnostic, get_physical_adapter_diagnostic, get_automatic_production_diagnostic, get_automatic_cycle_diagnostic, run_automatic_offline_cycle, get_resilience_validation_diagnostic, get_industrial_diagnostics, get_operational_health, get_commissioning_readiness, get_commissioning_plan, get_commissioning_evidence_package, get_commissioning_rehearsal, get_rev02_diagnostic
+from app.integrations.plc import PlcConfirmation, PlcGateway, plc_cycle_state, get_modbus_contract, get_codec_diagnostic, get_handshake_diagnostic, get_supervision_diagnostic, get_reconciliation_diagnostic, get_simulator_diagnostic, get_physical_adapter_diagnostic, get_automatic_production_diagnostic, get_automatic_cycle_diagnostic, run_automatic_offline_cycle, get_resilience_validation_diagnostic, get_industrial_diagnostics, get_operational_health, get_commissioning_readiness, get_commissioning_plan, get_commissioning_evidence_package, get_commissioning_rehearsal, get_rev02_diagnostic, get_external_simulator_diagnostic, probe_external_simulator
 from app.schemas.integration_reader import PlcConfirmRequest, PlcConfirmResponse, PlcIntegrationStatus, PlcCycleStatusResponse, PlcSimulatorControlRequest, PlcAutomaticOfflineCycleRequest, PlcAutomaticOfflineCycleResponse
 
 plc_gateway = PlcGateway()
@@ -113,6 +113,28 @@ def plc_modbus_simulator(_: User = Depends(get_current_user)):
 @router.get("/plc/modbus-physical")
 def plc_modbus_physical(_: User = Depends(get_current_user)):
     return get_physical_adapter_diagnostic()
+
+
+@router.get("/plc/external-simulator")
+def plc_external_simulator(_: User = Depends(get_current_user)):
+    return get_external_simulator_diagnostic()
+
+
+@router.post("/plc/external-simulator/probe")
+def plc_external_simulator_probe(
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_roles("SUPERVISOR", "ADMIN")),
+):
+    result = probe_external_simulator()
+    write_audit(
+        db,
+        "PLC_EXTERNAL_SIMULATOR_PROBE",
+        actor,
+        "INTEGRATION",
+        result["adapter"],
+        {"connected": result["connected"], "probe": result["probe"], "target": result["target"]},
+    )
+    return result
 
 
 @router.get("/plc/automatic-production")

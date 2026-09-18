@@ -54,6 +54,24 @@ def test_payload_flags_reflect_only_present_fields():
     assert payload_flags(serial="A", ean="", production_order="OP", model="") == 0b0101
 
 
+def test_retest_sets_d705_bit_four_and_original_sequence():
+    registers = build_write_registers(
+        sample_payload(retest_authorized=True, original_request_sequence=44),
+        AsciiByteOrder.HIGH_LOW,
+    )
+    assert registers[705] == 0b11111
+    assert registers[749] == 44
+
+
+@pytest.mark.parametrize("authorized,original", [(True, 0), (False, 44)])
+def test_retest_rejects_incoherent_flag_and_original_sequence(authorized, original):
+    with pytest.raises(ValueError, match="Reteste exige"):
+        build_write_registers(
+            sample_payload(retest_authorized=authorized, original_request_sequence=original),
+            AsciiByteOrder.HIGH_LOW,
+        )
+
+
 def test_codec_rejects_non_ascii_and_overlength_and_zero_sequence():
     with pytest.raises(ValueError, match="ASCII sem acentos"):
         build_write_registers(sample_payload(model="MÓDULO"), AsciiByteOrder.HIGH_LOW)
@@ -74,6 +92,8 @@ def test_decode_d755_flags_and_completion_fields():
     assert decoded["completed_sequence"] == 123
     assert decoded["completion_result_name"] == "PLACED"
     assert decoded["place_confirm_source_name"] == "ROBOT_PLACE_COMPLETE"
+    assert decoded["machine_state_text"] == "INIT"
+    assert decoded["active_fault_text"] == "NO_FAULT"
 
 
 def test_codec_diagnostic_keeps_commissioning_items_pending():

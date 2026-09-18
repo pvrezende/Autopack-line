@@ -1,16 +1,61 @@
 import { useEffect, useState } from 'react'
-import { getPlcRev02 } from '../services/api'
-import type { PlcRev02Diagnostic } from '../types/domain'
+import { getPlcExternalSimulator, getPlcRev02, probePlcExternalSimulator } from '../services/api'
+import type { PlcExternalSimulatorDiagnostic, PlcRev02Diagnostic } from '../types/domain'
 
 export function Rev02CommissioningPanel() {
   const [data, setData] = useState<PlcRev02Diagnostic | null>(null)
   const [error, setError] = useState('')
+  const [external, setExternal] = useState<PlcExternalSimulatorDiagnostic | null>(null)
+  const [externalError, setExternalError] = useState('')
+  const [probing, setProbing] = useState(false)
 
-  useEffect(() => { getPlcRev02().then(setData).catch(err => setError((err as Error).message)) }, [])
+  useEffect(() => {
+    getPlcRev02().then(setData).catch(err => setError((err as Error).message))
+    getPlcExternalSimulator().then(setExternal).catch(err => setExternalError((err as Error).message))
+  }, [])
+
+  async function probeExternal() {
+    setProbing(true); setExternalError('')
+    try { setExternal(await probePlcExternalSimulator()) }
+    catch (err) { setExternalError((err as Error).message) }
+    finally { setProbing(false) }
+  }
 
   return <section className="panel rev02-panel">
-    <details open>
-      <summary><span><strong>Contrato Modbus Rev.02 — preparação para comunicação real</strong><small>D700–D779 + leitor D800–D879 · Ladder Rev.04</small></span><span className="retest-summary-actions"><span className="badge warning">FÍSICO BLOQUEADO</span><span className="retest-toggle" /></span></summary>
+    <div className="external-simulator-card">
+      <div className="external-simulator-heading">
+        <span><strong>Teste Modbus com o CLP-Simulator</strong><small>Leitura real pela rede local, sem dados mockados e sem escrever no CLP físico.</small></span>
+        <span className={`badge ${external?.connected ? 'green' : 'amber'}`}>{external?.connected ? 'CONECTADO' : 'AGUARDANDO TESTE'}</span>
+      </div>
+      {externalError && <div className="message error">{externalError}</div>}
+      {external && <>
+        <div className="reader-diagnostic-grid">
+          <div><span>Perfil</span><strong>{external.enabled ? 'HABILITADO' : 'DESABILITADO'}</strong><small>{external.adapter}</small></div>
+          <div><span>Destino Modbus</span><strong>{external.target.host}:{external.target.port}</strong><small>Unit ID {external.target.unit_id}</small></div>
+          <div><span>Último teste</span><strong>{external.probe ?? 'AINDA NÃO EXECUTADO'}</strong><small>{external.identity_valid === false ? 'identidade incompatível' : external.connection_attempted ? 'conexão solicitada pelo usuário' : 'nenhum socket foi aberto'}</small></div>
+          <div><span>Segurança</span><strong>{external.write_enabled ? 'ESCRITA HABILITADA' : 'SOMENTE LEITURA'}</strong><small>CLP físico {external.physical_plc_enabled ? 'habilitado' : 'bloqueado'}</small></div>
+        </div>
+        <div className="external-simulator-actions">
+          <button disabled={probing || !external.enabled} onClick={probeExternal}>{probing ? 'Lendo registradores...' : 'Testar conexão e leitura Modbus'}</button>
+          <small>Primeiro publique um código na seção SR-1000 do CLP-Simulator. Depois volte aqui e clique neste botão.</small>
+        </div>
+        {external.connected && <div className="message success"><strong>Comunicação confirmada.</strong> {external.probe} · Heartbeat {external.handshake?.plc_heartbeat ?? '—'} · Máquina {external.handshake?.machine_state_text ?? '—'}.</div>}
+        {external.reader && <div className="external-reader-result">
+          <strong>Última leitura SR-1000 recebida via Modbus</strong>
+          <div className="reader-diagnostic-grid">
+            <div><span>Resultado</span><strong>{external.reader.result_name}</strong><small>sequência {external.reader.sequence}</small></div>
+            <div><span>Serial</span><strong>{external.reader.serial || '—'}</strong></div>
+            <div><span>EAN</span><strong>{external.reader.ean || '—'}</strong></div>
+            <div><span>Ordem / modelo</span><strong>{external.reader.production_order || '—'} / {external.reader.model || '—'}</strong></div>
+          </div>
+          <code>{external.reader.raw}</code>
+        </div>}
+      </>}
+      {!external && !externalError && <p>Carregando configuração do simulador...</p>}
+    </div>
+
+    <details>
+      <summary><span><strong>Detalhes do contrato Modbus Rev.02</strong><small>D700–D779 + leitor D800–D879 · Ladder Rev.04</small></span><span className="retest-summary-actions"><span className="badge warning">FÍSICO BLOQUEADO</span><span className="retest-toggle" /></span></summary>
       <div className="rev02-content">
         {error && <div className="message error">{error}</div>}
         {!data ? !error && <p>Carregando contrato Rev.02...</p> : <>

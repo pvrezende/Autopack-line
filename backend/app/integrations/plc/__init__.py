@@ -29,4 +29,6 @@ from .commissioning_evidence import get_commissioning_evidence_package
 
 from .commissioning_rehearsal import get_commissioning_rehearsal
 
-from .rev02_contract import get_rev02_diagnostic, decode_features, decode_reader_block
+from .rev02_contract import get_rev02_diagnostic, decode_features, decode_reader_block, decode_reader_snapshot
+
+from .external_simulator import ExternalPlcSimulatorAdapter, ExternalSimulatorConfig, get_external_simulator_diagnostic, probe_external_simulator

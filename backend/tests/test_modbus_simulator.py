@@ -60,6 +60,25 @@ def test_heartbeat_wraps_uint16():
     assert sim.heartbeat_tick() == 0
 
 
+def test_simulator_keeps_rev02_identity_and_reader_ranges():
+    sim = ModbusPlcSimulator()
+    assert sim.plc[764] == 4
+    assert sim.plc[765] == 2026
+    assert sim.plc[766] == 917
+    assert sim.plc[778] == 800
+    assert sim.plc[779] == 80
+    assert set(range(750, 880)) <= set(sim.plc)
+
+
+def test_simulator_validates_retest_flag_and_original_sequence():
+    sim = ModbusPlcSimulator()
+    registers = sim.pc.copy()
+    registers.update({700: 1, 702: 90, 703: 1, 705: 1 << 4, 749: 0})
+    sim.write_payload(registers)
+    sim.write_trigger(registers)
+    assert sim.plc[753] == 2
+
+
 def test_diagnostic_keeps_physical_items_pending():
     data = get_simulator_diagnostic()
     assert data["stage"] == "7.19"

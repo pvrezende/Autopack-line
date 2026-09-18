@@ -1,4 +1,6 @@
-from app.integrations.plc.rev02_contract import decode_features, decode_reader_block, get_rev02_diagnostic, sample_reader_registers
+import pytest
+
+from app.integrations.plc.rev02_contract import decode_features, decode_reader_block, decode_reader_snapshot, get_rev02_diagnostic, sample_reader_registers
 
 
 def test_rev02_identity_and_safe_defaults():
@@ -36,3 +38,21 @@ def test_reader_block_rejects_invalid_length():
         assert False, "deveria rejeitar comprimento inválido"
     except ValueError as exc:
         assert "Comprimento inválido" in str(exc)
+
+
+def test_reader_block_obeys_d777_and_d802_validity():
+    registers = sample_reader_registers()
+    with pytest.raises(ValueError, match="D777 não autoriza"):
+        decode_reader_block(registers, feature_flags=3)
+    decoded = decode_reader_block(registers, feature_flags=0b11111)
+    assert decoded["raw"].startswith("AB12;")
+    registers[802] &= ~(1 << 1)
+    assert decode_reader_block(registers, feature_flags=0b11111)["ean"] is None
+
+
+def test_reader_snapshot_rejects_sequence_changed_during_read():
+    reader = sample_reader_registers()
+    before = {770: 42, 777: 0b11111}
+    after = {770: 43, 777: 0b11111}
+    with pytest.raises(ValueError, match="sequência"):
+        decode_reader_snapshot(before, reader, after)

@@ -194,6 +194,14 @@ export function getPlcRev02() {
   return request<import('../types/domain').PlcRev02Diagnostic>('/integrations/plc/rev02')
 }
 
+export function getPlcExternalSimulator() {
+  return request<import('../types/domain').PlcExternalSimulatorDiagnostic>('/integrations/plc/external-simulator')
+}
+
+export function probePlcExternalSimulator() {
+  return request<import('../types/domain').PlcExternalSimulatorDiagnostic>('/integrations/plc/external-simulator/probe', { method: 'POST' })
+}
+
 export function getPlcModbusCodec() {
   return request<PlcModbusCodecDiagnostic>('/integrations/plc/modbus-codec')
 }

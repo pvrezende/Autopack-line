@@ -11,6 +11,10 @@ class PhysicalModbusConfig:
     host: str
     port: int
     unit_id: int
+    address_base: int
+    ascii_byte_order: str
+    read_only_enabled: bool
+    write_enabled: bool
     poll_interval_ms: int
     heartbeat_interval_ms: int
     transport_timeout_ms: int
@@ -37,6 +41,10 @@ class PhysicalModbusAdapter:
             host=settings.plc_modbus_host or network["plc_ip"],
             port=settings.plc_modbus_port,
             unit_id=settings.plc_modbus_unit_id,
+            address_base=settings.plc_modbus_address_base,
+            ascii_byte_order=settings.plc_ascii_byte_order,
+            read_only_enabled=settings.plc_read_only_enabled,
+            write_enabled=settings.plc_write_enabled,
             poll_interval_ms=timing["poll_interval_ms"],
             heartbeat_interval_ms=timing["heartbeat_interval_ms"],
             transport_timeout_ms=timing["transport_timeout_ms"],
@@ -51,8 +59,9 @@ class PhysicalModbusAdapter:
         pending_automation = list(contract["pending_automation"])
         pending_commissioning = list(contract["commissioning_validation"])
         enabled_by_config = bool(settings.plc_physical_enabled)
+        write_enabled = bool(settings.plc_write_enabled)
         gates_closed = bool(pending_automation or pending_commissioning)
-        activation_allowed = enabled_by_config and not gates_closed
+        activation_allowed = enabled_by_config and bool(settings.plc_read_only_enabled) and not gates_closed
         return {
             "stage": "7.33.1",
             "status": "PHYSICAL_ADAPTER_CONFIGURED_DISABLED",
@@ -65,7 +74,10 @@ class PhysicalModbusAdapter:
             "write_order": ["D704-D749", "D700-D703"],
             "reconnect_read_first": ["D752", "D754", "D757", "D758", "D760", "D761"],
             "physical_enabled_by_config": enabled_by_config,
+            "read_only_enabled_by_config": bool(settings.plc_read_only_enabled),
+            "write_enabled_by_config": write_enabled,
             "activation_allowed": activation_allowed,
+            "write_allowed": activation_allowed and write_enabled,
             "socket_opened": False,
             "connection_attempted": False,
             "safe_default": True,

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from .modbus_codec import AsciiByteOrder, ModbusPayload, build_write_registers, decode_read_registers
+from .rev02_contract import sample_reader_registers
 
 
 class SimulatorPhase(str, Enum):
@@ -23,7 +24,7 @@ class SimulatorConfig:
 
 
 class ModbusPlcSimulator:
-    """Simulador determinístico do contrato lógico D700-D763.
+    """Simulador determinístico do contrato lógico Rev.02.
 
     Não abre socket, não usa offset Modbus e não representa o ladder real. O objetivo
     é exercitar offline o mesmo mapa de registradores e as mesmas transições que o
@@ -33,14 +34,14 @@ class ModbusPlcSimulator:
     def __init__(self, config: SimulatorConfig | None = None) -> None:
         self.config = config or SimulatorConfig()
         self.pc = {address: 0 for address in range(700, 750)}
-        self.plc = {address: 0 for address in range(750, 764)}
+        self.plc = {address: 0 for address in range(750, 880)}
         self.phase = SimulatorPhase.READY
         self._last_sequence = 0
         self.reset()
 
     def reset(self) -> None:
         self.pc.update({address: 0 for address in range(700, 750)})
-        self.plc.update({address: 0 for address in range(750, 764)})
+        self.plc.update({address: 0 for address in range(750, 880)})
         self.plc[750] = 1
         self.plc[751] = 1
         self.plc[754] = 0
@@ -49,6 +50,12 @@ class ModbusPlcSimulator:
         self.plc[759] = self.config.pallet_capacity
         self.plc[762] = 1  # ROBOT_PLACE_COMPLETE, conforme contrato atual
         self.plc[763] = self.config.active_recipe_id
+        self.plc[764] = 4
+        self.plc[765] = 2026
+        self.plc[766] = 917
+        self.plc[777] = 3
+        self.plc[778] = 800
+        self.plc[779] = 80
         self.phase = SimulatorPhase.READY
         self._last_sequence = 0
 
@@ -71,6 +78,19 @@ class ModbusPlcSimulator:
         self.write_trigger(registers)
         return self.snapshot()
 
+    def publish_reader_data(self, registers: dict[int, int] | None = None, *, parsed_fields_valid: bool = True) -> None:
+        reader = registers or sample_reader_registers()
+        missing = [address for address in range(800, 880) if address not in reader]
+        if missing:
+            raise ValueError(f"Bloco do leitor incompleto: D{missing[0]} ausente")
+        self.plc.update(reader)
+        self.plc[770] = reader[800]
+        self.plc[771] = reader[846]
+        self.plc[769] = reader[801]
+        self.plc[777] = 3 | (1 << 2) | (1 << 3)
+        if parsed_fields_valid:
+            self.plc[777] |= 1 << 4
+
     def _evaluate_command(self) -> None:
         sequence = self.pc[702]
         command = self.pc[703]
@@ -82,6 +102,11 @@ class ModbusPlcSimulator:
         if command == 4:
             return
         if sequence == 0 or self.pc[700] != 1:
+            self.plc[753] = 2
+            return
+        retest_authorized = bool(self.pc[705] & (1 << 4))
+        if retest_authorized != (self.pc[749] != 0):
+            self.plc[752] = sequence
             self.plc[753] = 2
             return
         if command == 2:

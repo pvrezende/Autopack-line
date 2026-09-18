@@ -1,16 +1,8 @@
 from __future__ import annotations
 
 from app.core.config import settings
-from .modbus_codec import AsciiByteOrder, decode_ascii_registers, encode_ascii_registers
+from .modbus_codec import AsciiByteOrder, MACHINE_STATES, decode_ascii_registers, encode_ascii_registers
 
-
-MACHINE_STATES = {
-    0: "Inicialização", 10: "Aguardando permissivos", 30: "Verificando palete",
-    40: "Alimentando palete vazio", 50: "Pronta", 60: "Aguardando ACK do robô",
-    65: "Aguardando entrada na aplicadora", 66: "Movimentando na aplicadora",
-    67: "Aplicando fita", 80: "Aguardando coleta", 90: "Aguardando depósito",
-    100: "Palete completo", 110: "Descarregando palete", 900: "Falha",
-}
 
 RECIPES = {
     1: ("Outdoor 9.000", True), 2: ("Outdoor 12.000", True),
@@ -32,12 +24,34 @@ def decode_features(value: int) -> dict[str, bool]:
     return {name: bool(value & (1 << bit)) for bit, name in FEATURE_FLAGS.items()}
 
 
-def decode_reader_block(registers: dict[int, int], byte_order: AsciiByteOrder = AsciiByteOrder.HIGH_LOW) -> dict:
+def decode_reader_block(
+    registers: dict[int, int],
+    byte_order: AsciiByteOrder = AsciiByteOrder.HIGH_LOW,
+    *,
+    feature_flags: int | None = None,
+) -> dict:
     missing = [address for address in range(800, 880) if address not in registers]
     if missing:
         raise ValueError(f"Bloco do leitor incompleto: D{missing[0]} ausente")
 
-    def text(length_address: int, start: int, end: int, limit: int) -> str:
+    for address in range(800, 880):
+        value = registers[address]
+        if not isinstance(value, int) or isinstance(value, bool) or not 0 <= value <= 0xFFFF:
+            raise ValueError(f"Valor UINT16 inválido em D{address}: {value}")
+    if registers[801] not in READER_RESULTS:
+        raise ValueError(f"Resultado inválido em D801: {registers[801]}")
+    if registers[802] & ~0b11111:
+        raise ValueError(f"Flags desconhecidas em D802: 0x{registers[802]:04X}")
+
+    features = decode_features(feature_flags) if feature_flags is not None else None
+    if features is not None and not features["reader_raw_valid"]:
+        raise ValueError("D777 não autoriza o bloco bruto D800-D879")
+
+    def text(length_address: int, start: int, end: int, limit: int, flag_bit: int) -> str | None:
+        if not registers[802] & (1 << flag_bit):
+            return None
+        if flag_bit < 4 and features is not None and not features["reader_parsed_fields_valid"]:
+            return None
         length = registers[length_address]
         if length < 0 or length > limit:
             raise ValueError(f"Comprimento inválido em D{length_address}: {length}")
@@ -48,13 +62,33 @@ def decode_reader_block(registers: dict[int, int], byte_order: AsciiByteOrder = 
         "result": registers[801],
         "result_name": READER_RESULTS.get(registers[801], "UNKNOWN"),
         "payload_flags": registers[802],
-        "serial": text(803, 804, 819, 32),
-        "ean": text(820, 821, 827, 14),
-        "production_order": text(828, 829, 836, 16),
-        "model": text(837, 838, 845, 16),
-        "raw": text(846, 847, 878, 64),
+        "serial": text(803, 804, 819, 32, 0),
+        "ean": text(820, 821, 827, 14, 1),
+        "production_order": text(828, 829, 836, 16, 2),
+        "model": text(837, 838, 845, 16, 3),
+        "raw": text(846, 847, 878, 64, 4),
         "error_code": registers[879],
+        "features": features,
     }
+
+
+def decode_reader_snapshot(
+    status_before: dict[int, int],
+    reader_registers: dict[int, int],
+    status_after: dict[int, int],
+    byte_order: AsciiByteOrder = AsciiByteOrder.HIGH_LOW,
+) -> dict:
+    before = status_before.get(770)
+    after = status_after.get(770)
+    if before is None or after is None:
+        raise ValueError("D770 deve existir antes e depois da leitura do bloco")
+    if before != after or reader_registers.get(800) != after:
+        raise ValueError("Snapshot inconsistente: sequência do leitor mudou durante a leitura")
+    features_before = status_before.get(777)
+    features_after = status_after.get(777)
+    if features_before is None or features_before != features_after:
+        raise ValueError("Snapshot inconsistente: D777 mudou durante a leitura")
+    return decode_reader_block(reader_registers, byte_order, feature_flags=features_after)
 
 
 def sample_reader_registers() -> dict[int, int]:

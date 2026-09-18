@@ -6,6 +6,12 @@ Núcleo funcional do software de rastreabilidade e paletização automatizada.
 
 Contrato Modbus Rev.02 preparado com os mapas D700–D779 e D800–D879, Ladder Rev.04, rede configurável, parser do leitor, feature flags, estados, receitas e painel de comissionamento seguro. Conexão física permanece bloqueada por padrão.
 
+## Simulação Modbus com o CLP-Simulator
+
+O AUTOPACKLINE pode se conectar ao repositório CLP-Simulator por Modbus TCP para
+validar o contrato Rev.02 sem acessar o CLP físico. Consulte o passo a passo em
+[`README_SIMULACAO_CLP.md`](README_SIMULACAO_CLP.md).
+
 ## ETAPA 7.32
 
 Consolidação profissional do reteste offline, sem ativar MES, CLP físico ou qualquer alteração na produção:

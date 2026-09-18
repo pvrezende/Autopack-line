@@ -180,7 +180,7 @@ export type PlcRev02Diagnostic = {
 
 export type PlcModbusContract = {
   stage: string
-  status: 'PROPOSAL_NOT_IMPLEMENTED_IN_LADDER'
+  status: 'REV02_DEFINED_REV04_PENDING_PHYSICAL_VALIDATION'
   plc: { manufacturer:string; model:string; role:string; protocol:string; tcp_port:number }
   network_proposal: { plc_ip:string; pc_ip:string; netmask:string; gateway:string | null; topology:string }
   timing: { poll_interval_ms:number; heartbeat_interval_ms:number; transport_timeout_ms:number; transport_retry_attempts:number; transport_retry_interval_ms:number; ack_timeout_ms:number; physical_cycle_timeout_ms:number; heartbeat_stale_ms:number; physical_cycle_timeout_allows_automatic_resend:boolean }
@@ -209,8 +209,8 @@ export type PlcModbusCodecDiagnostic = {
     selection_status: string
     ab12_probe: { text:string; HIGH_LOW:string[]; LOW_HIGH:string[] }
   }
-  payload_flags: { serial_bit:number; ean_bit:number; op_bit:number; model_bit:number }
-  sample_payload: Record<string, string | number>
+  payload_flags: { serial_bit:number; ean_bit:number; op_bit:number; model_bit:number; retest_authorized_bit:number }
+  sample_payload: Record<string, string | number | boolean>
   sample_write_registers_provisional_high_low: Array<{ address:string; value:number; hex:string }>
   sample_read_decode: {
     result_name:string
@@ -337,19 +337,56 @@ export type PlcModbusPhysicalDiagnostic = {
   adapter: string
   transport: string
   role: string
-  target: { host:string; port:number; unit_id:number; poll_interval_ms:number; heartbeat_interval_ms:number; transport_timeout_ms:number; retry_attempts:number; retry_interval_ms:number; ack_timeout_ms:number; cycle_timeout_ms:number }
+  target: { host:string; port:number; unit_id:number; address_base:number; ascii_byte_order:string; read_only_enabled:boolean; write_enabled:boolean; poll_interval_ms:number; heartbeat_interval_ms:number; transport_timeout_ms:number; retry_attempts:number; retry_interval_ms:number; ack_timeout_ms:number; cycle_timeout_ms:number }
   write_range: string
   read_range: string
   write_order: string[]
   reconnect_read_first: string[]
   physical_enabled_by_config: boolean
+  read_only_enabled_by_config: boolean
+  write_enabled_by_config: boolean
   activation_allowed: boolean
+  write_allowed: boolean
   socket_opened: boolean
   connection_attempted: boolean
   safe_default: boolean
   pending_automation: string[]
   pending_commissioning: string[]
   activation_gates: string[]
+  message: string
+}
+
+export type PlcExternalSimulatorDiagnostic = {
+  stage: string
+  status: string
+  adapter: string
+  enabled: boolean
+  write_enabled: boolean
+  target: { host:string; port:number; unit_id:number; logical_origin:number; register_base:number; timeout_ms:number }
+  logical_map: Record<string, string>
+  physical_plc_enabled: boolean
+  socket_opened: boolean
+  connection_attempted: boolean
+  safe_default: boolean
+  connected?: boolean
+  probe?: string
+  identity_valid?: boolean
+  handshake?: {
+    plc_heartbeat: number
+    machine_state_text: string
+    active_fault_text: string
+  }
+  features?: Record<string, boolean>
+  reader?: {
+    sequence: number
+    result_name: string
+    serial: string
+    ean: string
+    production_order: string
+    model: string
+    raw: string
+    error_code: number
+  } | null
   message: string
 }
 
