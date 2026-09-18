@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { getRetestStatus, listRetestHistory, searchRetestUnits, simulateRetest } from '../services/api'
+import { createReworkOrder, getRetestStatus, listRetestHistory, searchRetestUnits, simulateRetest } from '../services/api'
 import type { RetestAttempt, RetestDiagnosticStatus, RetestUnit } from '../types/domain'
 
 const decisionLabel: Record<string, string> = { REJECTED: 'Reprovada', APPROVED: 'Aprovada' }
@@ -80,6 +80,18 @@ export function RetestFoundationPanel() {
     finally { setBusy(false) }
   }
 
+  async function openRework() {
+    if (!selectedUnit) return
+    const reason = window.prompt('Informe o motivo obrigatório da ordem de retrabalho:')?.trim()
+    if (!reason) return
+    setBusy(true); setError(''); setMessage('')
+    try {
+      const item = await createReworkOrder({ serial_number:selectedUnit.serial_number, reason })
+      setMessage(`Ordem de retrabalho #${item.id} aberta e vinculada à unidade original.`)
+    } catch (err) { setError((err as Error).message) }
+    finally { setBusy(false) }
+  }
+
   return <section className="panel retest-foundation-panel">
     <details>
       <summary>
@@ -112,6 +124,7 @@ export function RetestFoundationPanel() {
           <button className="secondary" disabled={busy || !selectedUnit} onClick={refreshHistory}>Atualizar histórico</button>
           <button className="danger" disabled={busy || !selectedUnit} onClick={() => run('REJECTED')}>Simular reprovação</button>
           <button className="primary" disabled={busy || !selectedUnit || !hasRejected} onClick={() => run('APPROVED')}>Simular reteste aprovado</button>
+          <button className="secondary" disabled={busy || !selectedUnit || selectedUnit.unit_status !== 'PALLETIZED'} onClick={openRework}>Abrir retrabalho</button>
         </div>
         {selectedUnit && !hasRejected && <div className="message warning">A aprovação permanece bloqueada até existir uma reprovação anterior para esta unidade.</div>}
         {error && <div className="message error">{error}</div>}{message && <div className="message success">{message}</div>}
@@ -122,6 +135,7 @@ export function RetestFoundationPanel() {
             <small>{new Date(item.created_at).toLocaleString('pt-BR')} · não contabilizada na produção</small>
           </div>)}
         </div>
+        <small>Limite provisório configurado: {status?.max_attempts ?? 2} tentativa(s). Unidade paletizada usa somente ordem de retrabalho.</small>
         <details className="compact-details"><summary>Regras de segurança e definições pendentes</summary>
           <div className="retest-rules"><ul>{status?.safety_rules.map(rule => <li key={rule}>{rule}</li>)}</ul><ul>{status?.pending_definitions.map(rule => <li key={rule}>{rule}</li>)}</ul></div>
         </details>

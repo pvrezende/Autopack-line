@@ -13,6 +13,8 @@ class Product(Base):
     model: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     capacity_btu: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    plc_recipe_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    plc_recipe_released: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())

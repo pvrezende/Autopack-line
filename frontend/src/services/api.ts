@@ -194,12 +194,30 @@ export function getPlcRev02() {
   return request<import('../types/domain').PlcRev02Diagnostic>('/integrations/plc/rev02')
 }
 
+export function createReworkOrder(payload: { serial_number:string; reason:string }) {
+  return request<import('../types/domain').ReworkOrder>('/retests/rework-orders', { method:'POST', body:JSON.stringify(payload) })
+}
+
+export function updateProduct(id:number, payload: Partial<Omit<Product, 'id'>>) {
+  return request<Product>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(payload) })
+}
+
 export function getPlcExternalSimulator() {
   return request<import('../types/domain').PlcExternalSimulatorDiagnostic>('/integrations/plc/external-simulator')
 }
 
 export function probePlcExternalSimulator() {
   return request<import('../types/domain').PlcExternalSimulatorDiagnostic>('/integrations/plc/external-simulator/probe', { method: 'POST' })
+}
+
+export function tickPlcExternalSimulator(lineId:number) {
+  return request<import('../types/domain').PlcExternalRuntimeResult>(`/integrations/plc/external-simulator/tick?line_id=${lineId}`, { method: 'POST' })
+}
+
+export async function exportPlcTransactionsCsv() {
+  const response = await fetch(`${API_URL}/integrations/plc/transactions/export.csv`, { headers:authHeaders() })
+  if (!response.ok) throw new Error(`Erro HTTP ${response.status}`)
+  return response.blob()
 }
 
 export function getPlcModbusCodec() {
@@ -224,6 +242,10 @@ export function getPlcModbusSimulator() {
 
 export function getPlcModbusPhysical() {
   return request<PlcModbusPhysicalDiagnostic>('/integrations/plc/modbus-physical')
+}
+
+export function probePlcModbusPhysicalReadOnly() {
+  return request<PlcModbusPhysicalDiagnostic>('/integrations/plc/modbus-physical/probe-read-only', { method: 'POST' })
 }
 
 export function getPlcAutomaticProduction() {

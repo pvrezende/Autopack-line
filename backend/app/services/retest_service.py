@@ -7,6 +7,7 @@ from app.models.production_unit import ProductionUnit
 from app.models.product import Product
 from app.models.production_order import ProductionOrder
 from app.models.retest_attempt import RetestAttempt
+from app.models.rework_order import ReworkOrder
 from app.schemas.retest import RetestSimulationRequest
 
 
@@ -17,6 +18,7 @@ class RetestService:
             "real_retest_enabled": settings.retest_enabled,
             "simulator_enabled": settings.retest_simulator_enabled,
             "physical_plc_required": False,
+            "max_attempts": settings.retest_max_attempts,
             "mode": "OFFLINE_FOUNDATION" if not settings.retest_enabled else "REAL_RULES_ENABLED",
             "safety_rules": [
                 "O simulador nunca altera contadores, paletes ou o estado produtivo da unidade.",
@@ -26,7 +28,7 @@ class RetestService:
             ],
             "pending_definitions": [
                 "Origem oficial da aprovacao e reprovacao.",
-                "Regra de autorizacao e limite de retestes.",
+                "Aprovação nominal dos autorizadores por Processo/Qualidade.",
                 "Contrato e disponibilidade do MES.",
                 "Impacto definitivo em producao e paletizacao.",
             ],
@@ -101,6 +103,10 @@ class RetestService:
         unit = db.scalar(select(ProductionUnit).where(ProductionUnit.serial_number == payload.serial_number.strip()))
         if not unit:
             raise HTTPException(status_code=404, detail="Unidade não encontrada para o serial informado")
+        if unit.status == "PALLETIZED":
+            raise HTTPException(status_code=409, detail="Unidade já depositada não pode entrar em reteste; abra uma ordem de retrabalho.")
+        if not (payload.reason_text or "").strip():
+            raise HTTPException(status_code=422, detail="Motivo do reteste/reprovação é obrigatório")
 
         prior_rejected = db.scalar(
             select(RetestAttempt.id)
@@ -117,6 +123,8 @@ class RetestService:
             select(func.coalesce(func.max(RetestAttempt.attempt_number), 0))
             .where(RetestAttempt.production_unit_id == unit.id)
         ) or 0) + 1
+        if next_attempt > settings.retest_max_attempts:
+            raise HTTPException(status_code=409, detail=f"Limite configurado de {settings.retest_max_attempts} tentativas atingido")
         authorization = "SIMULATED_AUTHORIZED" if payload.authorized_for_retest else "PENDING_PROCESS_DEFINITION"
         attempt = RetestAttempt(
             production_unit_id=unit.id,
@@ -135,3 +143,24 @@ class RetestService:
         db.commit()
         db.refresh(attempt)
         return attempt, False
+
+    def create_rework_order(self, db: Session, serial_number: str, reason: str, username: str) -> ReworkOrder:
+        unit = db.scalar(select(ProductionUnit).where(ProductionUnit.serial_number == serial_number.strip()))
+        if not unit:
+            raise HTTPException(status_code=404, detail="Unidade não encontrada")
+        if unit.status != "PALLETIZED":
+            raise HTTPException(status_code=409, detail="Ordem de retrabalho é exclusiva para unidade já depositada")
+        existing = db.scalar(select(ReworkOrder).where(
+            ReworkOrder.original_production_unit_id == unit.id,
+            ReworkOrder.status == "OPEN",
+        ))
+        if existing:
+            return existing
+        item = ReworkOrder(
+            original_production_unit_id=unit.id,
+            reason=reason.strip(),
+            created_by_username=username,
+            status="OPEN",
+        )
+        db.add(item); db.commit(); db.refresh(item)
+        return item

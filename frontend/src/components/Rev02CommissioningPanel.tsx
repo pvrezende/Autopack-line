@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getPlcExternalSimulator, getPlcRev02, probePlcExternalSimulator } from '../services/api'
+import { exportPlcTransactionsCsv, getPlcExternalSimulator, getPlcRev02, probePlcExternalSimulator } from '../services/api'
 import type { PlcExternalSimulatorDiagnostic, PlcRev02Diagnostic } from '../types/domain'
 
 export function Rev02CommissioningPanel() {
@@ -21,6 +21,14 @@ export function Rev02CommissioningPanel() {
     finally { setProbing(false) }
   }
 
+  async function exportTransactions() {
+    try {
+      const blob = await exportPlcTransactionsCsv()
+      const url = URL.createObjectURL(blob); const link = document.createElement('a')
+      link.href = url; link.download = 'autopackline_transacoes_modbus.csv'; link.click(); URL.revokeObjectURL(url)
+    } catch (err) { setExternalError((err as Error).message) }
+  }
+
   return <section className="panel rev02-panel">
     <div className="external-simulator-card">
       <div className="external-simulator-heading">
@@ -37,6 +45,7 @@ export function Rev02CommissioningPanel() {
         </div>
         <div className="external-simulator-actions">
           <button disabled={probing || !external.enabled} onClick={probeExternal}>{probing ? 'Lendo registradores...' : 'Testar conexão e leitura Modbus'}</button>
+          <button className="secondary" onClick={exportTransactions}>Exportar transações Modbus</button>
           <small>Primeiro publique um código na seção SR-1000 do CLP-Simulator. Depois volte aqui e clique neste botão.</small>
         </div>
         {external.connected && <div className="message success"><strong>Comunicação confirmada.</strong> {external.probe} · Heartbeat {external.handshake?.plc_heartbeat ?? '—'} · Máquina {external.handshake?.machine_state_text ?? '—'}.</div>}

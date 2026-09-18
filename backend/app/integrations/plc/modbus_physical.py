@@ -3,7 +3,10 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 
 from app.core.config import settings
+from app.integrations.plc.modbus_codec import AsciiByteOrder, decode_read_registers
 from app.integrations.plc.modbus_contract import get_modbus_contract
+from app.integrations.plc.modbus_transport import ModbusTcpClient, ModbusTcpTarget, ModbusTransportError
+from app.integrations.plc.rev02_contract import decode_features, decode_reader_snapshot
 
 
 @dataclass(frozen=True)
@@ -57,11 +60,21 @@ class PhysicalModbusAdapter:
     def diagnostic(self) -> dict:
         contract = get_modbus_contract()
         pending_automation = list(contract["pending_automation"])
-        pending_commissioning = list(contract["commissioning_validation"])
+        commissioning_gates = {
+            "ISPsoft_COMPILE": settings.plc_ispsoft_compiled,
+            "MODBUS_REGISTER_OFFSET": settings.plc_register_offset_validated,
+            "ASCII_BYTE_ORDER_AB12": settings.plc_ascii_byte_order_validated,
+            "NETWORK_SWITCH_PORT": settings.plc_network_validated,
+            "READER_ETHERNETIP": settings.plc_reader_ethernetip_validated,
+            "PHYSICAL_END_TO_END": settings.plc_physical_e2e_authorized,
+        }
+        pending_commissioning = [name for name, passed in commissioning_gates.items() if not passed]
         enabled_by_config = bool(settings.plc_physical_enabled)
         write_enabled = bool(settings.plc_write_enabled)
-        gates_closed = bool(pending_automation or pending_commissioning)
-        activation_allowed = enabled_by_config and bool(settings.plc_read_only_enabled) and not gates_closed
+        read_gate_names = {"ISPsoft_COMPILE", "MODBUS_REGISTER_OFFSET", "NETWORK_SWITCH_PORT"}
+        read_gates_closed = bool(pending_automation or read_gate_names.intersection(pending_commissioning))
+        write_gates_closed = bool(pending_automation or pending_commissioning)
+        activation_allowed = enabled_by_config and bool(settings.plc_read_only_enabled) and not read_gates_closed
         return {
             "stage": "7.33.1",
             "status": "PHYSICAL_ADAPTER_CONFIGURED_DISABLED",
@@ -77,12 +90,13 @@ class PhysicalModbusAdapter:
             "read_only_enabled_by_config": bool(settings.plc_read_only_enabled),
             "write_enabled_by_config": write_enabled,
             "activation_allowed": activation_allowed,
-            "write_allowed": activation_allowed and write_enabled,
+            "write_allowed": activation_allowed and write_enabled and not write_gates_closed,
             "socket_opened": False,
             "connection_attempted": False,
             "safe_default": True,
             "pending_automation": pending_automation,
             "pending_commissioning": pending_commissioning,
+            "commissioning_gates": commissioning_gates,
             "activation_gates": [
                 "Ladder Rev.04 compilado no ISPSoft e comparado com o CLP",
                 "Offset/endereço Modbus validado no CLP real",
@@ -91,9 +105,60 @@ class PhysicalModbusAdapter:
                 "Integração EtherNet/IP do SR-1000 validada quando D777 anunciar dados válidos",
                 "PLC_PHYSICAL_ENABLED=true somente durante comissionamento autorizado",
             ],
-            "message": f"Adaptador Modbus TCP real configurado para {settings.plc_modbus_host}:502 e isolado por feature flag. Nesta etapa nenhum socket é aberto.",
+            "message": (
+                f"Adaptador Modbus TCP real configurado para {settings.plc_modbus_host}:502. "
+                + ("A sondagem abre conexão exclusivamente para leitura; escrita permanece bloqueada."
+                   if activation_allowed else "Nenhum socket será aberto até a liberação dos requisitos mínimos.")
+            ),
         }
+
+    def _address_for(self, logical_d: int) -> int:
+        address = logical_d - self.config.address_base
+        if not 0 <= address <= 0xFFFF:
+            raise ValueError("Endereço físico Modbus inválido")
+        return address
+
+    def probe_read_only(self, client: ModbusTcpClient | None = None) -> dict:
+        diagnostic = self.diagnostic()
+        if not diagnostic["activation_allowed"]:
+            return {**diagnostic, "connected": False, "probe": "BLOCKED_BY_COMMISSIONING_GATES"}
+        transport = client or ModbusTcpClient(ModbusTcpTarget(
+            self.config.host, self.config.port, self.config.unit_id, self.config.transport_timeout_ms,
+        ))
+        try:
+            values = transport.read_holding_registers(self._address_for(750), 30)
+            status = {750 + index: value for index, value in enumerate(values)}
+            expected = {750: 1, 764: 4, 765: 2026, 766: 917, 778: 800, 779: 80}
+            mismatches = {key: {"expected": value, "received": status[key]} for key, value in expected.items() if status[key] != value}
+            if mismatches:
+                raise ValueError(f"Identidade Rev.04 incompatível: {mismatches}")
+            result = {
+                **diagnostic,
+                "connection_attempted": True,
+                "socket_opened": True,
+                "connected": True,
+                "probe": "READ_D750_D779_OK",
+                "identity_valid": True,
+                "status_registers": status,
+                "handshake": decode_read_registers(status),
+                "features": decode_features(status[777]),
+                "reader": None,
+            }
+            if result["features"]["reader_raw_valid"]:
+                reader_values = transport.read_holding_registers(self._address_for(800), 80)
+                after_values = transport.read_holding_registers(self._address_for(750), 30)
+                reader = {800 + index: value for index, value in enumerate(reader_values)}
+                after = {750 + index: value for index, value in enumerate(after_values)}
+                result["reader"] = decode_reader_snapshot(status, reader, after, AsciiByteOrder(self.config.ascii_byte_order))
+                result["probe"] = "READ_REV02_SNAPSHOT_OK"
+            return result
+        except (ModbusTransportError, ValueError, UnicodeDecodeError) as exc:
+            return {**diagnostic, "connection_attempted": True, "connected": False, "probe": "PROBE_ERROR", "message": str(exc)}
 
 
 def get_physical_adapter_diagnostic() -> dict:
     return PhysicalModbusAdapter().diagnostic()
+
+
+def probe_physical_adapter_read_only() -> dict:
+    return PhysicalModbusAdapter().probe_read_only()

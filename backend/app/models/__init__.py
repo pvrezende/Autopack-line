@@ -15,6 +15,8 @@ from app.models.downtime_event import DowntimeEvent
 from app.models.indicator_threshold import IndicatorThreshold
 from app.models.plc_transaction import PlcTransaction
 from app.models.retest_attempt import RetestAttempt
+from app.models.plc_reader_event import PlcReaderEvent
+from app.models.rework_order import ReworkOrder
 
 __all__ = [
     "Product",
@@ -34,4 +36,6 @@ __all__ = [
     "IndicatorThreshold",
     "PlcTransaction",
     "RetestAttempt",
+    "PlcReaderEvent",
+    "ReworkOrder",
 ]

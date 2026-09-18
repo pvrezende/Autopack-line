@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
+from app.core.config import settings
+
 
 class BarcodeParseError(ValueError):
     pass
@@ -36,11 +38,23 @@ def _validate_ean13(value: str) -> None:
 
 
 def parse_elgin_qr(raw_code: str) -> ParsedBarcode:
-    parts = [part.strip() for part in raw_code.strip().split(";")]
-    if len(parts) != 5:
-        raise BarcodeParseError("QR deve possuir exatamente 5 campos separados por ';'")
+    delimiter = settings.barcode_delimiter
+    fields = [item.strip() for item in settings.barcode_field_order.split(",") if item.strip()]
+    allowed = {"model", "ean", "serial", "production_order", "url"}
+    if not delimiter or len(delimiter) != 1:
+        raise BarcodeParseError("Configuração do delimitador do QR é inválida")
+    if len(fields) != len(set(fields)) or not {"model", "ean", "serial", "production_order"}.issubset(fields) or set(fields) - allowed:
+        raise BarcodeParseError("Configuração da ordem dos campos do QR é inválida")
+    parts = [part.strip() for part in raw_code.strip().split(delimiter)]
+    if len(parts) != len(fields):
+        raise BarcodeParseError(f"QR deve possuir exatamente {len(fields)} campos separados por '{delimiter}'")
 
-    raw_product_code, ean, serial_number, production_order, url = parts
+    values = dict(zip(fields, parts, strict=True))
+    raw_product_code = values["model"]
+    ean = values["ean"]
+    serial_number = values["serial"]
+    production_order = values["production_order"]
+    url = values.get("url", "")
     if not raw_product_code:
         raise BarcodeParseError("Código do produto ausente")
     _validate_ean13(ean)
@@ -48,9 +62,10 @@ def parse_elgin_qr(raw_code: str) -> ParsedBarcode:
         raise BarcodeParseError("Número de série ausente")
     if not production_order:
         raise BarcodeParseError("Ordem de produção ausente")
-    parsed_url = urlparse(url)
-    if parsed_url.scheme not in {"http", "https"} or not parsed_url.netloc:
-        raise BarcodeParseError("URL do QR é inválida")
+    if url or settings.barcode_url_required:
+        parsed_url = urlparse(url)
+        if parsed_url.scheme not in {"http", "https"} or not parsed_url.netloc:
+            raise BarcodeParseError("URL do QR é inválida")
 
     # O significado do prefixo do primeiro campo ainda não foi confirmado.
     # Por isso o parser preserva o valor bruto; o modelo oficial é obtido

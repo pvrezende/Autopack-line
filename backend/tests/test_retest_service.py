@@ -125,3 +125,20 @@ def test_retest_unit_search_can_filter_by_order_and_model():
         assert len(service.search_units(db, "OP-1", 20)) == 1
         assert len(service.search_units(db, "MODEL", 20)) == 1
         assert service.search_units(db, "NAO-EXISTE", 20) == []
+
+
+def test_palletized_unit_is_blocked_from_retest_and_uses_rework_order():
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    with Session(engine) as db:
+        unit = seed_unit(db)
+        unit.status = "PALLETIZED"; db.commit()
+        service = RetestService()
+        try:
+            service.simulate(db, request("REJECTED", "palletized-key"), "admin")
+            assert False, "Unidade depositada não pode entrar em reteste"
+        except Exception as error:
+            assert getattr(error, "status_code", None) == 409
+        rework = service.create_rework_order(db, unit.serial_number, "Retrabalho autorizado", "admin")
+        assert rework.original_production_unit_id == unit.id
+        assert rework.status == "OPEN"

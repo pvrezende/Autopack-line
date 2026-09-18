@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     plc_ascii_byte_order: Literal["HIGH_LOW", "LOW_HIGH"] = "HIGH_LOW"
     plc_read_only_enabled: bool = False
     plc_write_enabled: bool = False
+    plc_ispsoft_compiled: bool = False
+    plc_register_offset_validated: bool = False
+    plc_ascii_byte_order_validated: bool = False
+    plc_network_validated: bool = False
+    plc_reader_ethernetip_validated: bool = False
+    plc_physical_e2e_authorized: bool = False
     plc_external_simulator_enabled: bool = False
     plc_external_simulator_write_enabled: bool = False
     plc_external_simulator_host: str = "host.docker.internal"
@@ -36,8 +42,12 @@ class Settings(BaseSettings):
     plc_external_simulator_logical_origin: int = 700
     plc_external_simulator_register_base: int = 0
     plc_external_simulator_timeout_ms: int = 1000
+    barcode_delimiter: str = ";"
+    barcode_field_order: str = "model,ean,serial,production_order,url"
+    barcode_url_required: bool = True
     retest_enabled: bool = False
     retest_simulator_enabled: bool = True
+    retest_max_attempts: int = Field(default=2, ge=1, le=20)
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

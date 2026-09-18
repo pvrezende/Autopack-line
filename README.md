@@ -393,3 +393,10 @@ A versão atual inclui a fundação controlada de reteste offline: histórico de
 ## ETAPA 7.33.1 — Correção de consistência Rev.02
 
 Os diagnósticos legados foram alinhados ao contrato vigente: rede `192.168.29.0/24`, Ladder Rev.04, mapa `D700–D779` e bloco do leitor `D800–D879`. Foram removidas da interface as indicações obsoletas de “proposta/Ladder pendente”, sem liberar socket ou escrita física. Permanecem como gates reais a compilação no ISPSoft, offset, byte order AB12, porta/rede da máquina e validação EtherNet/IP do SR-1000. Consulte `docs/ETAPA_7_33_1_CORRECAO_CONSISTENCIA_REV02.md`.
+
+## ETAPA 7.35 — Runtime Modbus com CLP-Simulator
+
+O fluxo produtivo passa a consumir D800–D879, validar a leitura, persistir a
+transação, escrever D704–D749/D700–D703 e aguardar D752/D753/D760/D761 no
+CLP-Simulator Modbus TCP. O Delta físico continua bloqueado por gates explícitos
+de comissionamento. Consulte `docs/ETAPA_7_35_RUNTIME_MODBUS_SIMULADOR.md`.

@@ -1,10 +1,16 @@
+import csv
+import io
+
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user, require_roles
 from app.database.session import get_db
 from app.integrations.reader import ReaderGateway, ReaderInput
 from app.models.user import User
+from app.models.plc_transaction import PlcTransaction
 from app.schemas.integration_reader import ReaderDiagnosticRequest, ReaderDiagnosticResponse, ReaderIngestRequest, ReaderIngestResponse, ReaderIntegrationStatus
 from app.services.audit_service import write_audit
 
@@ -64,6 +70,8 @@ def ingest_reader(
 
 # ETAPA 7.4 — contrato de integração CLP/robô (simulado até definição do hardware real)
 from app.integrations.plc import PlcConfirmation, PlcGateway, plc_cycle_state, get_modbus_contract, get_codec_diagnostic, get_handshake_diagnostic, get_supervision_diagnostic, get_reconciliation_diagnostic, get_simulator_diagnostic, get_physical_adapter_diagnostic, get_automatic_production_diagnostic, get_automatic_cycle_diagnostic, run_automatic_offline_cycle, get_resilience_validation_diagnostic, get_industrial_diagnostics, get_operational_health, get_commissioning_readiness, get_commissioning_plan, get_commissioning_evidence_package, get_commissioning_rehearsal, get_rev02_diagnostic, get_external_simulator_diagnostic, probe_external_simulator
+from app.integrations.plc.external_runtime import external_simulator_runtime
+from app.integrations.plc.modbus_physical import probe_physical_adapter_read_only
 from app.schemas.integration_reader import PlcConfirmRequest, PlcConfirmResponse, PlcIntegrationStatus, PlcCycleStatusResponse, PlcSimulatorControlRequest, PlcAutomaticOfflineCycleRequest, PlcAutomaticOfflineCycleResponse
 
 plc_gateway = PlcGateway()
@@ -115,6 +123,20 @@ def plc_modbus_physical(_: User = Depends(get_current_user)):
     return get_physical_adapter_diagnostic()
 
 
+@router.post("/plc/modbus-physical/probe-read-only")
+def plc_modbus_physical_probe_read_only(
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_roles("SUPERVISOR", "ADMIN")),
+):
+    result = probe_physical_adapter_read_only()
+    write_audit(db, "PLC_PHYSICAL_READ_ONLY_PROBE", actor, "INTEGRATION", result["adapter"], {
+        "connected": result.get("connected", False),
+        "probe": result.get("probe"),
+        "target": result["target"],
+    })
+    return result
+
+
 @router.get("/plc/external-simulator")
 def plc_external_simulator(_: User = Depends(get_current_user)):
     return get_external_simulator_diagnostic()
@@ -135,6 +157,60 @@ def plc_external_simulator_probe(
         {"connected": result["connected"], "probe": result["probe"], "target": result["target"]},
     )
     return result
+
+
+@router.post("/plc/external-simulator/tick")
+def plc_external_simulator_tick(
+    line_id: int,
+    db: Session = Depends(get_db),
+    actor: User = Depends(get_current_user),
+):
+    result = external_simulator_runtime.tick(db, line_id=line_id)
+    if result["result"] not in {"WAITING_READER", "READER_ALREADY_PROCESSED", "WAITING_ACK", "REQUEST_ACCEPTED", "WAITING_CYCLE_COMPLETION"}:
+        write_audit(
+            db,
+            "PLC_EXTERNAL_SIMULATOR_RUNTIME",
+            actor,
+            "PLC_TRANSACTION",
+            result.get("transaction_id"),
+            {
+                "line_id": line_id,
+                "result": result["result"],
+                "reader_sequence": result.get("reader_sequence"),
+                "request_sequence": result.get("request_sequence"),
+                "message": result["message"],
+            },
+        )
+    return result
+
+
+@router.get("/plc/transactions/export.csv")
+def plc_transactions_export(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles("SUPERVISOR", "ADMIN")),
+):
+    rows = list(db.scalars(select(PlcTransaction).order_by(PlcTransaction.id.desc()).limit(10000)))
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "id", "created_at", "updated_at", "line_id", "production_order_id", "production_unit_id",
+        "reader_sequence", "request_sequence", "command", "status", "ack_sequence", "result_code",
+        "completed_sequence", "completion_result", "pallet_sequence", "boxes_on_pallet",
+        "reconciliation_status", "last_error", "raw_reader_data", "payload_hash",
+    ])
+    for item in rows:
+        writer.writerow([
+            item.id, item.created_at, item.updated_at, item.line_id, item.production_order_id,
+            item.production_unit_id, item.reader_sequence, item.request_sequence, item.command,
+            item.status, item.ack_sequence, item.result_code, item.completed_sequence,
+            item.completion_result, item.pallet_sequence, item.boxes_on_pallet,
+            item.reconciliation_status, item.last_error, item.raw_reader_data, item.payload_hash,
+        ])
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=autopackline_transacoes_modbus.csv"},
+    )
 
 
 @router.get("/plc/automatic-production")

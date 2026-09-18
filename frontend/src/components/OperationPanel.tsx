@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { BrowserMultiFormatReader } from '@zxing/browser'
-import { confirmPlcPalletization, controlPlcSimulator, diagnoseReaderCode, generateTestQr, getPlcCycleStatus, getPlcIntegrationStatus, getPlcModbusContract, getPlcModbusCodec, getPlcModbusHandshake, getPlcModbusSupervision, getPlcModbusReconciliation, getPlcModbusSimulator, getPlcModbusPhysical, getPlcAutomaticProduction, getPlcAutomaticOfflineCycle, getPlcResilienceValidation, getPlcIndustrialDiagnostics, getPlcOperationalHealth, getPlcCommissioningReadiness, getPlcCommissioningPlan, getPlcCommissioningEvidence, getPlcCommissioningRehearsal, runPlcAutomaticOfflineCycle, getPlcLatestCycle, getReaderIntegrationStatus, ingestReaderCode, listProductionOrders } from '../services/api'
-import type { PalletizeResult, PlcConfirmResponse, PlcCycleStatus, PlcIntegrationStatus, PlcModbusContract, PlcModbusCodecDiagnostic, PlcModbusHandshakeDiagnostic, PlcModbusSupervisionDiagnostic, PlcModbusReconciliationDiagnostic, PlcModbusSimulatorDiagnostic, PlcModbusPhysicalDiagnostic, PlcAutomaticProductionDiagnostic, PlcAutomaticOfflineCycleDiagnostic, PlcAutomaticOfflineCycleResponse, PlcResilienceValidationDiagnostic, PlcIndustrialDiagnostics, PlcOperationalHealthDiagnostic, PlcCommissioningReadinessDiagnostic, PlcCommissioningPlanDiagnostic, PlcCommissioningEvidenceDiagnostic, PlcCommissioningRehearsalDiagnostic, ProductionLine, ProductionOrder, ReaderDiagnosticResponse, ReaderIntegrationStatus, ScanSimulationResult } from '../types/domain'
+import { confirmPlcPalletization, controlPlcSimulator, diagnoseReaderCode, generateTestQr, getPlcCycleStatus, getPlcIntegrationStatus, getPlcModbusContract, getPlcModbusCodec, getPlcModbusHandshake, getPlcModbusSupervision, getPlcModbusReconciliation, getPlcModbusSimulator, getPlcModbusPhysical, probePlcModbusPhysicalReadOnly, getPlcAutomaticProduction, getPlcAutomaticOfflineCycle, getPlcResilienceValidation, getPlcIndustrialDiagnostics, getPlcOperationalHealth, getPlcCommissioningReadiness, getPlcCommissioningPlan, getPlcCommissioningEvidence, getPlcCommissioningRehearsal, runPlcAutomaticOfflineCycle, getPlcLatestCycle, getReaderIntegrationStatus, ingestReaderCode, listProductionOrders, tickPlcExternalSimulator } from '../services/api'
+import type { PalletizeResult, PlcConfirmResponse, PlcCycleStatus, PlcIntegrationStatus, PlcModbusContract, PlcModbusCodecDiagnostic, PlcModbusHandshakeDiagnostic, PlcModbusSupervisionDiagnostic, PlcModbusReconciliationDiagnostic, PlcModbusSimulatorDiagnostic, PlcModbusPhysicalDiagnostic, PlcAutomaticProductionDiagnostic, PlcAutomaticOfflineCycleDiagnostic, PlcAutomaticOfflineCycleResponse, PlcResilienceValidationDiagnostic, PlcIndustrialDiagnostics, PlcOperationalHealthDiagnostic, PlcCommissioningReadinessDiagnostic, PlcCommissioningPlanDiagnostic, PlcCommissioningEvidenceDiagnostic, PlcCommissioningRehearsalDiagnostic, PlcExternalRuntimeResult, ProductionLine, ProductionOrder, ReaderDiagnosticResponse, ReaderIntegrationStatus, ScanSimulationResult } from '../types/domain'
 
 const REAL_QR = ''
 const PLC_CONTEXT_KEY = 'autopackline.plc-cycle-context-v1'
@@ -40,6 +40,7 @@ export function OperationPanel({ lines, onChanged, refreshKey = 0, view = 'opera
   const [readerIntegrationError, setReaderIntegrationError] = useState('')
   const [plcIntegration, setPlcIntegration] = useState<PlcIntegrationStatus | null>(null)
   const [plcIntegrationError, setPlcIntegrationError] = useState('')
+  const [externalRuntime, setExternalRuntime] = useState<PlcExternalRuntimeResult | null>(null)
   const [modbusContract, setModbusContract] = useState<PlcModbusContract | null>(null)
   const [modbusContractError, setModbusContractError] = useState('')
   const [modbusCodec, setModbusCodec] = useState<PlcModbusCodecDiagnostic | null>(null)
@@ -54,6 +55,7 @@ export function OperationPanel({ lines, onChanged, refreshKey = 0, view = 'opera
   const [modbusSimulatorError, setModbusSimulatorError] = useState('')
   const [modbusPhysical, setModbusPhysical] = useState<PlcModbusPhysicalDiagnostic | null>(null)
   const [modbusPhysicalError, setModbusPhysicalError] = useState('')
+  const [modbusPhysicalLoading, setModbusPhysicalLoading] = useState(false)
   const [automaticProduction, setAutomaticProduction] = useState<PlcAutomaticProductionDiagnostic | null>(null)
   const [automaticProductionError, setAutomaticProductionError] = useState('')
   const [automaticCycle722, setAutomaticCycle722] = useState<PlcAutomaticOfflineCycleDiagnostic | null>(null)
@@ -91,6 +93,7 @@ export function OperationPanel({ lines, onChanged, refreshKey = 0, view = 'opera
   const detectorBusyRef = useRef(false)
   const decodedRef = useRef(false)
   const hidInputRef = useRef<HTMLInputElement | null>(null)
+  const externalTickBusyRef = useRef(false)
 
   const liveCameraAvailable = window.isSecureContext && Boolean(navigator.mediaDevices?.getUserMedia)
   const secureScannerUrl = `https://${window.location.hostname}:5174`
@@ -119,6 +122,27 @@ export function OperationPanel({ lines, onChanged, refreshKey = 0, view = 'opera
       .catch((err) => { if (!cancelled) setReaderIntegrationError((err as Error).message) })
     return () => { cancelled = true }
   }, [view])
+
+  useEffect(() => {
+    if (view !== 'operation' || !lineId) { setExternalRuntime(null); return }
+    let cancelled = false
+    const poll = async () => {
+      if (externalTickBusyRef.current) return
+      externalTickBusyRef.current = true
+      try {
+        const data = await tickPlcExternalSimulator(Number(lineId))
+        if (!cancelled) {
+          setExternalRuntime(data)
+          if (["COMPLETED_PLACED", "COMPLETED_REJECTED", "COMPLETED_ABORTED"].includes(data.result)) await onChanged()
+        }
+      } catch (err) {
+        if (!cancelled) setExternalRuntime({ result: 'API_ERROR', message: (err as Error).message })
+      } finally { externalTickBusyRef.current = false }
+    }
+    void poll()
+    const timer = window.setInterval(() => { void poll() }, 250)
+    return () => { cancelled = true; window.clearInterval(timer) }
+  }, [view, lineId, onChanged])
 
   useEffect(() => {
     let cancelled = false
@@ -641,6 +665,18 @@ export function OperationPanel({ lines, onChanged, refreshKey = 0, view = 'opera
     }
   }
 
+  async function probePhysicalReadOnly() {
+    setModbusPhysicalLoading(true)
+    setModbusPhysicalError('')
+    try {
+      setModbusPhysical(await probePlcModbusPhysicalReadOnly())
+    } catch (err) {
+      setModbusPhysicalError((err as Error).message)
+    } finally {
+      setModbusPhysicalLoading(false)
+    }
+  }
+
   return (
     <section className={`card-section operation-card mobile-operation-card ${view === 'diagnostics' ? 'diagnostics-card' : ''}`}>
       <div className="section-heading operation-heading">
@@ -855,7 +891,7 @@ export function OperationPanel({ lines, onChanged, refreshKey = 0, view = 'opera
       <button type="button" className={`config-toggle operation-accordion-toggle ${openReaderPanel === 'physical720' ? 'active' : ''}`} onClick={() => setOpenReaderPanel(openReaderPanel === 'physical720' ? null : 'physical720')}>
         <span className="config-hamburger">☰</span>
         <span><strong>Adaptador Modbus TCP real — configuração segura</strong><small>{modbusPhysical?.message ?? modbusPhysicalError ?? 'Carregando configuração física...'}</small></span>
-        <span className="badge amber">BLOQUEADO</span>
+        <span className={`badge ${modbusPhysical?.activation_allowed ? 'green' : 'amber'}`}>{modbusPhysical?.activation_allowed ? 'LEITURA LIBERADA' : 'BLOQUEADO'}</span>
         <b>{openReaderPanel === 'physical720' ? '−' : '+'}</b>
       </button>
       {openReaderPanel === 'physical720' && <div className="operation-accordion-content plc-integration-card">
@@ -866,13 +902,17 @@ export function OperationPanel({ lines, onChanged, refreshKey = 0, view = 'opera
             <div><span>Mapa</span><strong>{modbusPhysical.write_range} → / ← {modbusPhysical.read_range}</strong><small>contrato lógico preservado</small></div>
             <div><span>Socket físico</span><strong>{modbusPhysical.socket_opened ? 'ABERTO' : 'NÃO ABERTO'}</strong><small>tentativa: {modbusPhysical.connection_attempted ? 'SIM' : 'NÃO'}</small></div>
           </div>
-          <div className="message warning"><strong>Bloqueio de segurança ativo.</strong> O destino {modbusPhysical.target.host}:{modbusPhysical.target.port} está configurado, porém esta etapa não abre conexão com a máquina.</div>
+          <div className={`message ${modbusPhysical.activation_allowed ? 'success' : 'warning'}`}><strong>{modbusPhysical.activation_allowed ? 'Sondagem somente leitura disponível.' : 'Bloqueio de segurança ativo.'}</strong> {modbusPhysical.message}</div>
           <div className="plc-retry-summary">
             <span><strong>Feature flag:</strong> {modbusPhysical.physical_enabled_by_config ? 'ATIVA' : 'DESATIVADA'}</span>
             <span><strong>Ativação permitida:</strong> {modbusPhysical.activation_allowed ? 'SIM' : 'NÃO'}</span>
             <span><strong>Pendências automação:</strong> {modbusPhysical.pending_automation.length}</span>
             <span><strong>Pendências comissionamento:</strong> {modbusPhysical.pending_commissioning.length}</span>
           </div>
+          <div className="plc-control-actions">
+            <button type="button" className="secondary" disabled={!modbusPhysical.activation_allowed || modbusPhysicalLoading} onClick={() => { void probePhysicalReadOnly() }}>{modbusPhysicalLoading ? 'Lendo identidade...' : 'Testar identidade Rev.04 (somente leitura)'}</button>
+          </div>
+          {modbusPhysical.probe && <small>Resultado da sondagem: {modbusPhysical.probe} · conexão: {modbusPhysical.connected ? 'OK' : 'não estabelecida'}</small>}
           <small>Escrita preparada: {modbusPhysical.write_order.join(' → ')}. Reconexão lê primeiro {modbusPhysical.reconnect_read_first.join(' / ')}.</small>
         </> : <div className="message error">{modbusPhysicalError || 'Configuração do adaptador físico não disponível.'}</div>}
       </div>}
@@ -1111,6 +1151,10 @@ export function OperationPanel({ lines, onChanged, refreshKey = 0, view = 'opera
       </>}
 
       {view === 'operation' && <div className="operation-grid">
+        {externalRuntime && externalRuntime.result !== 'DISABLED' && <div className={`message ${['ERROR','COMMUNICATION_LOST','INTERVENTION','MACHINE_BLOCKED','RECIPE_BLOCKED','API_ERROR'].includes(externalRuntime.result) ? 'warning' : 'success'}`}>
+          <strong>CLP-Simulator Modbus · {externalRuntime.result}</strong> — {externalRuntime.message}
+          {externalRuntime.communication && <small> D754={externalRuntime.communication.machine_state} · palete {externalRuntime.communication.pallet_sequence} · {externalRuntime.communication.boxes_on_pallet}/{externalRuntime.communication.pallet_capacity} · heartbeat {externalRuntime.communication.plc_heartbeat}</small>}
+        </div>}
         <div className="operation-inputs">
           <div className="operation-context-grid">
             <label>Linha<select value={lineId} onChange={(e) => { setLineId(e.target.value); setResult(null); setPalletResult(null); setPlcSync(null); setPlcRestoredFromDb(false); setPlcFeedback(null); window.sessionStorage.removeItem(PLC_CONTEXT_KEY); setError('') }}><option value="">Selecione a linha</option>{lines.map((line) => <option key={line.id} value={line.id}>{line.code} · {line.name}</option>)}</select></label>

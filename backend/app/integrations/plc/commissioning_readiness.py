@@ -31,7 +31,8 @@ def get_commissioning_readiness(db: Session) -> dict[str, Any]:
     physical = get_physical_adapter_diagnostic()
 
     pending_automation = list(contract.get("pending_automation", []))
-    commissioning = list(contract.get("commissioning_validation", []))
+    commissioning = list(physical.get("pending_commissioning", []))
+    ladder_ready = bool(physical.get("commissioning_gates", {}).get("ISPsoft_COMPILE"))
 
     checklist = [
         _item(
@@ -70,9 +71,9 @@ def get_commissioning_readiness(db: Session) -> dict[str, Any]:
             "LADDER_REV04_ISPSOFT",
             "Ladder Rev.04 no ISPSoft",
             "AUTOMATION",
-            "PENDING_AUTOMATION",
-            "Abrir, compilar e comparar a Rev.04 no ISPSoft antes do download e do teste físico.",
-            True,
+            "READY" if ladder_ready else "PENDING_AUTOMATION",
+            "Rev.04 compilada/comparada no ISPSoft." if ladder_ready else "Abrir, compilar e comparar a Rev.04 no ISPSoft antes do download e do teste físico.",
+            not ladder_ready,
         ),
         _item(
             "AUTOMATION_TABLES",
@@ -105,7 +106,7 @@ def get_commissioning_readiness(db: Session) -> dict[str, Any]:
         "checklist_count": len(checklist),
         "ready_count": len(ready),
         "real_blocker_count": len(real_blockers),
-        "pending_automation_count": len(pending_automation) + 1,
+        "pending_automation_count": len(pending_automation) + (0 if ladder_ready else 1),
         "pending_commissioning_count": len(commissioning),
         "pending_automation": pending_automation,
         "pending_commissioning": commissioning,

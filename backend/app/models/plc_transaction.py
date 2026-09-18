@@ -29,6 +29,7 @@ class PlcTransaction(Base):
     production_unit_id: Mapped[int] = mapped_column(ForeignKey("production_units.id"), nullable=False, unique=True, index=True)
 
     request_sequence: Mapped[int] = mapped_column(Integer, nullable=False)
+    reader_sequence: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     command: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     status: Mapped[str] = mapped_column(String(40), nullable=False, default="PERSISTED_PENDING", index=True)
 
@@ -41,6 +42,7 @@ class PlcTransaction(Base):
     completion_result: Mapped[int | None] = mapped_column(Integer, nullable=True)
     pallet_sequence: Mapped[int | None] = mapped_column(Integer, nullable=True)
     boxes_on_pallet: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    raw_reader_data: Mapped[str | None] = mapped_column(String(2000), nullable=True)
 
     reconciliation_status: Mapped[str | None] = mapped_column(String(60), nullable=True)
     last_error: Mapped[str | None] = mapped_column(String(120), nullable=True)

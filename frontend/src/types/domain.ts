@@ -5,6 +5,8 @@ export type Product = {
   model: string
   name: string
   capacity_btu: number | null
+  plc_recipe_id: number | null
+  plc_recipe_released: boolean
   active: boolean
 }
 
@@ -96,6 +98,7 @@ export type RetestDiagnosticStatus = {
   safety_rules: string[]
   pending_definitions: string[]
   message: string
+  max_attempts: number
 }
 
 export type RetestSimulationResponse = {
@@ -327,6 +330,7 @@ export type PlcModbusSimulatorDiagnostic = {
     after_completion: { phase:string; completed_sequence:number; completion:string; boxes_on_pallet:number }
   }
   pending_commissioning: string[]
+  commissioning_gates: Record<string, boolean>
   pending_automation: string[]
   message: string
 }
@@ -352,7 +356,11 @@ export type PlcModbusPhysicalDiagnostic = {
   safe_default: boolean
   pending_automation: string[]
   pending_commissioning: string[]
+  commissioning_gates: Record<string, boolean>
   activation_gates: string[]
+  connected?: boolean
+  probe?: string
+  identity?: Record<string, number>
   message: string
 }
 
@@ -388,6 +396,37 @@ export type PlcExternalSimulatorDiagnostic = {
     error_code: number
   } | null
   message: string
+}
+
+export type ReworkOrder = {
+  id: number
+  original_production_unit_id: number
+  status: string
+  reason: string
+  created_by_username: string
+  created_at: string
+}
+
+export type PlcExternalRuntimeResult = {
+  result: string
+  message: string
+  reader_sequence?: number
+  request_sequence?: number
+  transaction_id?: number
+  communication?: {
+    plc_heartbeat: number
+    machine_state: number
+    machine_state_text: string
+    active_fault_code: number
+    active_fault_text: string
+    pallet_sequence: number
+    boxes_on_pallet: number
+    pallet_capacity: number
+    completed_sequence: number
+    completion_result_name: string
+    active_recipe_id: number
+    machine_flags: Record<string, boolean>
+  }
 }
 
 

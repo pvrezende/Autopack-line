@@ -51,6 +51,7 @@ class RetestDiagnosticStatus(BaseModel):
     safety_rules: list[str]
     pending_definitions: list[str]
     message: str
+    max_attempts: int
 
 
 class RetestUnitRead(BaseModel):
@@ -65,3 +66,18 @@ class RetestUnitRead(BaseModel):
     attempt_count: int
     last_decision: str | None = None
     created_at: datetime
+
+
+class ReworkOrderCreate(BaseModel):
+    serial_number: str = Field(min_length=1, max_length=100)
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class ReworkOrderRead(BaseModel):
+    id: int
+    original_production_unit_id: int
+    status: str
+    reason: str
+    created_by_username: str
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)

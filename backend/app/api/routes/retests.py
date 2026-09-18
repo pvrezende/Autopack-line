@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.security import require_roles
 from app.database.session import get_db
 from app.models.user import User
-from app.schemas.retest import RetestAttemptRead, RetestDiagnosticStatus, RetestSimulationRequest, RetestSimulationResponse, RetestUnitRead
+from app.schemas.retest import RetestAttemptRead, RetestDiagnosticStatus, RetestSimulationRequest, RetestSimulationResponse, RetestUnitRead, ReworkOrderCreate, ReworkOrderRead
 from app.services.audit_service import write_audit
 from app.services.retest_service import RetestService
 
@@ -75,3 +75,17 @@ def simulate_retest(
         "production_state_changed": False,
         "message": "Tentativa existente recuperada sem duplicação." if replayed else "Tentativa simulada registrada sem alterar a produção.",
     }
+
+
+@router.post("/rework-orders", response_model=ReworkOrderRead)
+def create_rework_order(
+    payload: ReworkOrderCreate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_roles("SUPERVISOR", "ADMIN")),
+):
+    item = service.create_rework_order(db, payload.serial_number, payload.reason, actor.username)
+    write_audit(db, "REWORK_ORDER_OPENED", actor, "REWORK_ORDER", item.id, {
+        "original_production_unit_id": item.original_production_unit_id,
+        "reason": item.reason,
+    })
+    return item
